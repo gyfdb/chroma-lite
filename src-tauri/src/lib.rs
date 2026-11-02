@@ -84,10 +84,13 @@ fn open_settings(app: &AppHandle) {
         let _ = w.set_focus();
         return;
     }
+    // no OS title bar, the UI draws its own (TitleBar.tsx)
+    // no min size either, the layout reflows down to tiny windows
     let _ = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
         .title("Chroma Lite")
         .inner_size(1180.0, 820.0)
-        .min_inner_size(900.0, 600.0)
+        .decorations(false)
+        .shadow(true)
         .build();
 }
 

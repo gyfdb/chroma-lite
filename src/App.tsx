@@ -6,6 +6,7 @@ import DeviceSettings from "./components/DeviceSettings";
 import Inspector from "./components/Inspector";
 import LayerStack from "./components/LayerStack";
 import Preview from "./components/Preview";
+import TitleBar from "./components/TitleBar";
 import { Slider, Toggle } from "./components/ui";
 
 const KEYBOARD_HINTS = /keyboard|blackwidow|huntsman|ornata|cynosa|deathstalker/i;
@@ -175,160 +176,158 @@ export default function App() {
   };
 
   return (
-    <main>
-      <header class="top">
-        <div class="brand">
-          <span class="flame">🔥</span>
-          <h1>Chroma Lite</h1>
-        </div>
-        <div class="top-right">
-          <span class={`pill ${status()?.dark ? "dark" : "live"}`}>{statusLine()}</span>
-          <span class={`save ${save()}`}>
-            {save() === "saving" ? "Saving…" : save() === "error" ? "Save failed" : "Saved"}
-          </span>
-          <Toggle checked={config.enabled} onChange={(v) => setConfig("enabled", v)} title="Master lighting switch" />
-        </div>
-      </header>
+    <>
+      <TitleBar>
+        <span class={`pill ${status()?.dark ? "dark" : "live"}`}>{statusLine()}</span>
+        <span class={`save ${save()}`}>
+          {save() === "saving" ? "Saving…" : save() === "error" ? "Save failed" : "Saved"}
+        </span>
+        <Toggle checked={config.enabled} onChange={(v) => setConfig("enabled", v)} title="Master lighting switch" />
+      </TitleBar>
+      <div class="scroll">
+      <main>
 
-      <nav class="device-tabs">
-        <For each={config.devices}>
-          {(d, i) => (
-            <button
-              classList={{ "device-tab": true, active: sel() === i() }}
-              onClick={() => {
-                setSel(i());
-                setLayerSel(null);
-              }}
-            >
-              <span class={`dot ${status()?.devices[i()]?.connected ? "on" : ""}`} />
-              {d.name}
-            </button>
-          )}
-        </For>
-        <button classList={{ "device-tab": true, add: true, active: sel() === ADD_DEVICE }} onClick={() => setSel(ADD_DEVICE)}>
-          + Add device
-        </button>
-      </nav>
-
-      <Show when={device()}>
-        {(d) => (
-          <div class="workspace">
-            <div class="col-main">
-              <Show when={devStatus()?.error}>
-                <div class="error">{devStatus()!.error}</div>
-              </Show>
-              <Show when={d()} keyed>
-                {(dev) => (
-                  <Preview
-                    device={dev}
-                    index={sel()}
-                    status={devStatus()}
-                    dark={!!status()?.dark || !config.enabled}
-                    fps={config.fps}
-                    hooks={status()?.hooks ?? 0}
-                  />
-                )}
-              </Show>
-              <LayerStack
-                layers={d().layers}
-                selectedId={selectedLayer()?.id ?? null}
-                onSelect={setLayerSel}
-                onToggle={toggleLayer}
-                onRemove={removeLayer}
-                onMove={moveLayer}
-                onAdd={addLayer}
-              />
-            </div>
-
-            <aside class="col-side">
-              <Inspector
-                layer={selectedLayer()}
-                isBottom={d().layers.length > 0 && d().layers[d().layers.length - 1].id === selectedLayer()?.id}
-                onDevice={onlyActive()}
-                patchLayer={patchLayer}
-                patchEffect={patchEffect}
-              />
-              <DeviceSettings device={d()} set={setDevice} onRemove={removeDevice} />
-              <section class="card">
-                <h2>General</h2>
-                <Slider
-                  label="Turn lights off after"
-                  min={0}
-                  max={60}
-                  step={1}
-                  value={Math.round(config.idleTimeoutSecs / 60)}
-                  display={config.idleTimeoutSecs === 0 ? "never" : `${Math.round(config.idleTimeoutSecs / 60)} min`}
-                  onInput={(v) => setConfig("idleTimeoutSecs", v * 60)}
-                />
-                <Slider
-                  label="Frame rate"
-                  hint="for streamed stacks"
-                  min={0.1}
-                  max={60}
-                  step={0.1}
-                  value={config.fps}
-                  display={`${config.fps} fps`}
-                  editable={{ unit: "fps", decimals: 2 }}
-                  onInput={(v) => setConfig("fps", +v.toFixed(2))}
-                />
-              </section>
-            </aside>
-          </div>
-        )}
-      </Show>
-
-      <Show when={sel() === ADD_DEVICE}>
-        <section class="card scan">
-          <div class="scan-head">
-            <div>
-              <h2>Add a device</h2>
-              <p class="hint">Close Synapse first; it holds the devices and fights over the lights.</p>
-            </div>
-            <button onClick={scan} disabled={scanning()}>
-              {scanning() ? "Scanning…" : "Scan for devices"}
-            </button>
-          </div>
-          <Show when={found()}>
-            {(list) => (
-              <Show when={list().length > 0} fallback={<p class="muted">No Razer devices found.</p>}>
-                <ul class="found">
-                  <For each={list()}>
-                    {(f) => {
-                      const added = () => config.devices.some((d) => d.pid === f.pid);
-                      return (
-                        <li>
-                          <div>
-                            <strong>{f.product}</strong>
-                            <span class="muted">
-                              {" "}
-                              · PID {hex(f.pid, 4)}
-                              {f.transactionId != null
-                                ? ` · tid ${hex(f.transactionId)} · fw ${f.firmware}`
-                                : " · no lighting interface answered"}
-                            </span>
-                          </div>
-                          <button
-                            class="ghost"
-                            disabled={added() || f.transactionId == null}
-                            onClick={() => {
-                              setConfig("devices", produce((ds) => ds.push(newDevice(f))));
-                              setSel(config.devices.length - 1);
-                            }}
-                          >
-                            {added() ? "Added" : "Add"}
-                          </button>
-                        </li>
-                      );
-                    }}
-                  </For>
-                </ul>
-              </Show>
+        <nav class="device-tabs">
+          <For each={config.devices}>
+            {(d, i) => (
+              <button
+                classList={{ "device-tab": true, active: sel() === i() }}
+                onClick={() => {
+                  setSel(i());
+                  setLayerSel(null);
+                }}
+              >
+                <span class={`dot ${status()?.devices[i()]?.connected ? "on" : ""}`} />
+                {d.name}
+              </button>
             )}
-          </Show>
-        </section>
-      </Show>
+          </For>
+          <button classList={{ "device-tab": true, add: true, active: sel() === ADD_DEVICE }} onClick={() => setSel(ADD_DEVICE)}>
+            + Add device
+          </button>
+        </nav>
 
-      <footer class="muted">Closing this window keeps Chroma Lite running in the tray.</footer>
-    </main>
+        <Show when={device()}>
+          {(d) => (
+            <div class="workspace">
+              <div class="col-main">
+                <Show when={devStatus()?.error}>
+                  <div class="error">{devStatus()!.error}</div>
+                </Show>
+                <Show when={d()} keyed>
+                  {(dev) => (
+                    <Preview
+                      device={dev}
+                      index={sel()}
+                      status={devStatus()}
+                      dark={!!status()?.dark || !config.enabled}
+                      fps={config.fps}
+                      hooks={status()?.hooks ?? 0}
+                    />
+                  )}
+                </Show>
+                <LayerStack
+                  layers={d().layers}
+                  selectedId={selectedLayer()?.id ?? null}
+                  onSelect={setLayerSel}
+                  onToggle={toggleLayer}
+                  onRemove={removeLayer}
+                  onMove={moveLayer}
+                  onAdd={addLayer}
+                />
+              </div>
+
+              <aside class="col-side">
+                <Inspector
+                  layer={selectedLayer()}
+                  isBottom={d().layers.length > 0 && d().layers[d().layers.length - 1].id === selectedLayer()?.id}
+                  onDevice={onlyActive()}
+                  patchLayer={patchLayer}
+                  patchEffect={patchEffect}
+                />
+                <DeviceSettings device={d()} set={setDevice} onRemove={removeDevice} />
+                <section class="card">
+                  <h2>General</h2>
+                  <Slider
+                    label="Turn lights off after"
+                    min={0}
+                    max={60}
+                    step={1}
+                    value={Math.round(config.idleTimeoutSecs / 60)}
+                    display={config.idleTimeoutSecs === 0 ? "never" : `${Math.round(config.idleTimeoutSecs / 60)} min`}
+                    onInput={(v) => setConfig("idleTimeoutSecs", v * 60)}
+                  />
+                  <Slider
+                    label="Frame rate"
+                    hint="for streamed stacks"
+                    min={0.1}
+                    max={60}
+                    step={0.1}
+                    value={config.fps}
+                    display={`${config.fps} fps`}
+                    editable={{ unit: "fps", decimals: 2 }}
+                    onInput={(v) => setConfig("fps", +v.toFixed(2))}
+                  />
+                </section>
+              </aside>
+            </div>
+          )}
+        </Show>
+
+        <Show when={sel() === ADD_DEVICE}>
+          <section class="card scan">
+            <div class="scan-head">
+              <div>
+                <h2>Add a device</h2>
+                <p class="hint">Close Synapse first; it holds the devices and fights over the lights.</p>
+              </div>
+              <button onClick={scan} disabled={scanning()}>
+                {scanning() ? "Scanning…" : "Scan for devices"}
+              </button>
+            </div>
+            <Show when={found()}>
+              {(list) => (
+                <Show when={list().length > 0} fallback={<p class="muted">No Razer devices found.</p>}>
+                  <ul class="found">
+                    <For each={list()}>
+                      {(f) => {
+                        const added = () => config.devices.some((d) => d.pid === f.pid);
+                        return (
+                          <li>
+                            <div>
+                              <strong>{f.product}</strong>
+                              <span class="muted">
+                                {" "}
+                                · PID {hex(f.pid, 4)}
+                                {f.transactionId != null
+                                  ? ` · tid ${hex(f.transactionId)} · fw ${f.firmware}`
+                                  : " · no lighting interface answered"}
+                              </span>
+                            </div>
+                            <button
+                              class="ghost"
+                              disabled={added() || f.transactionId == null}
+                              onClick={() => {
+                                setConfig("devices", produce((ds) => ds.push(newDevice(f))));
+                                setSel(config.devices.length - 1);
+                              }}
+                            >
+                              {added() ? "Added" : "Add"}
+                            </button>
+                          </li>
+                        );
+                      }}
+                    </For>
+                  </ul>
+                </Show>
+              )}
+            </Show>
+          </section>
+        </Show>
+
+        <footer class="muted">Closing this window keeps Chroma Lite running in the tray.</footer>
+      </main>
+      </div>
+    </>
   );
 }

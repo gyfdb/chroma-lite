@@ -60,7 +60,7 @@ What's tuned for release:
 | Where | Setting | Why |
 |---|---|---|
 | `Cargo.toml` | `opt-level = "s"`, fat LTO, `codegen-units = 1`, `strip`, `panic = "abort"` | Small binary; the app spends its time sleeping or on USB, not doing heavy CPU work |
-| `tauri.conf.json` | `build.removeUnusedCommands` + an empty capability | The UI only calls the app's own commands, so Tauri's built-in JS APIs get compiled out |
+| `tauri.conf.json` | `build.removeUnusedCommands` + a minimal capability | Only the window and zoom calls the title bar needs are allowed, so the rest of Tauri's JS APIs get compiled out |
 | `tauri.conf.json` | NSIS only, per-user install | One small installer, no admin prompt, faster than also building an MSI |
 | `vite.config.ts` | `chrome105` / `safari15` target, no sourcemaps, no preload polyfill | It only runs in WebView2 / WebKitGTK |
 
@@ -75,6 +75,13 @@ With `panic = "abort"`, a panic closes the whole tray app instead of quietly kil
 3. **LED zone ids** are used for brightness and on-device effects. 0x05 is the keyboard backlight; mice vary (0x00, 0x01 scroll wheel, 0x04 logo, 0x0A underglow…).
 
 The key → LED map is `keymap` in `src-tauri/src/input.rs`. It assumes a full-size ANSI layout, so tweak it if a key lights up the wrong spot.
+
+## The window
+
+- Custom title bar: drag it to move, double-click to maximize, and − □ ✕ on the right. ✕ closes to the tray.
+- Works at any size; the layout reflows down to phone width.
+- Zoom with **Ctrl +/−/0** or **Ctrl + mouse wheel**, or click the % in the title bar to reset. It remembers the level.
+- No right-click menu and no text selection, except in text fields. `bun tauri dev` keeps the right-click menu so you can still Inspect.
 
 ## In the background
 
@@ -91,7 +98,9 @@ src/
   App.tsx                  device tabs, workspace, layer ops, live save
   effects.ts               effect catalog: labels, defaults, summaries
   styles.css               all styling
+  zoom.ts                  webview zoom + shortcuts
   components/
+    TitleBar.tsx           custom window chrome
     LayerStack.tsx         sortable layer boxes
     AddEffectMenu.tsx      "Add effect" dropdown
     EffectIcon.tsx         SVG icon per effect
