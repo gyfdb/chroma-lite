@@ -10,4 +10,14 @@ export default defineConfig({
     strictPort: true,
     watch: { ignored: ["**/src-tauri/**"] },
   },
+  build: {
+    // the UI only runs in WebView2 (windows) or WebKitGTK (linux), so there's
+    // no down-levelling for old browsers
+    target: ["chrome105", "safari15"],
+    cssTarget: ["chrome105", "safari15"],
+    minify: "esbuild",
+    sourcemap: false,
+    reportCompressedSize: false,
+    modulePreload: { polyfill: false },
+  },
 });

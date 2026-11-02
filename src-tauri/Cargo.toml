@@ -27,8 +27,15 @@ windows-sys = { version = "0.59", features = [
     "Win32_System_Threading",
 ] }
 
+[profile.dev]
+incremental = true
+
+# small tray app, so favor size. the hot paths are USB I/O and sleeping, not
+# CPU work. fat LTO for cross-crate inlining, abort on panic, no unwind tables
 [profile.release]
 opt-level = "s"
-lto = true
+lto = "fat"
 codegen-units = 1
+panic = "abort"
 strip = true
+incremental = false

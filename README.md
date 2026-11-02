@@ -43,12 +43,30 @@ The engine picks the cheapest way to drive each device:
 Quit Synapse first (and ideally take it out of startup), otherwise the two fight over the lights.
 
 ```
-npm install
-npm run tauri dev
-npm run tauri build   # installer ends up in src-tauri/target/release/bundle
+bun install
+bun tauri dev
 ```
 
-To use Bun instead, change `beforeDevCommand` / `beforeBuildCommand` in `src-tauri/tauri.conf.json` to `bun run dev` / `bun run build`.
+The project uses Bun (`tauri.conf.json` runs `bun run dev` / `bun run build`). For npm, change those two commands and use `npm install` / `npm run tauri dev`.
+
+### Release build
+
+```
+bun run release      # tauri build → src-tauri/target/release/bundle/nsis/*-setup.exe
+```
+
+What's tuned for release:
+
+| Where | Setting | Why |
+|---|---|---|
+| `Cargo.toml` | `opt-level = "s"`, fat LTO, `codegen-units = 1`, `strip`, `panic = "abort"` | Small binary; the app spends its time sleeping or on USB, not doing heavy CPU work |
+| `tauri.conf.json` | `build.removeUnusedCommands` + an empty capability | The UI only calls the app's own commands, so Tauri's built-in JS APIs get compiled out |
+| `tauri.conf.json` | NSIS only, per-user install | One small installer, no admin prompt, faster than also building an MSI |
+| `vite.config.ts` | `chrome105` / `safari15` target, no sourcemaps, no preload polyfill | It only runs in WebView2 / WebKitGTK |
+
+On Linux this took the binary from 4.74 MB to 2.59 MB. `opt-level = "z"` only saves about another 4% and makes the code slower, so it stays on `"s"`.
+
+With `panic = "abort"`, a panic closes the whole tray app instead of quietly killing the lighting thread. `removeUnusedCommands` only applies when building through the Tauri CLI; a plain `cargo build --release` skips it.
 
 ## First-time setup
 
