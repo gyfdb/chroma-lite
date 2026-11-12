@@ -22,6 +22,8 @@ export default function Preview(props: {
 
   onMount(() => {
     const ctx = canvas.getContext("2d")!;
+    // canvas can't use CSS vars directly, so read the token once
+    const ledOff = getComputedStyle(document.documentElement).getPropertyValue("--color-led-off").trim() || "#1b1b22";
     let alive = true;
     let raf = 0;
 
@@ -54,7 +56,7 @@ export default function Preview(props: {
         for (let c = 0; c < cols; c++) {
           const x = c * (cell + GAP);
           const y = r * (cell + GAP);
-          ctx.fillStyle = "#1b1b22";
+          ctx.fillStyle = ledOff;
           ctx.fillRect(x, y, cell, cell);
           if (!ok) continue;
           const i = (r * cols + c) * 3;

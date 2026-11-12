@@ -11,10 +11,10 @@ export default defineConfig({
     watch: { ignored: ["**/src-tauri/**"] },
   },
   build: {
-    // the UI only runs in WebView2 (windows) or WebKitGTK (linux), so there's
-    // no down-levelling for old browsers
-    target: ["chrome105", "safari15"],
-    cssTarget: ["chrome105", "safari15"],
+    // the UI only runs in evergreen WebView2 (windows) or WebKitGTK (linux).
+    // chrome111 / safari16.2 are the first with color-mix(), which the tokens use
+    target: ["chrome111", "safari16.2"],
+    cssTarget: ["chrome111", "safari16.2"],
     minify: "esbuild",
     sourcemap: false,
     reportCompressedSize: false,

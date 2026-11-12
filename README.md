@@ -62,7 +62,7 @@ What's tuned for release:
 | `Cargo.toml` | `opt-level = "s"`, fat LTO, `codegen-units = 1`, `strip`, `panic = "abort"` | Small binary; the app spends its time sleeping or on USB, not doing heavy CPU work |
 | `tauri.conf.json` | `build.removeUnusedCommands` + a minimal capability | Only the window and zoom calls the title bar needs are allowed, so the rest of Tauri's JS APIs get compiled out |
 | `tauri.conf.json` | NSIS only, per-user install | One small installer, no admin prompt, faster than also building an MSI |
-| `vite.config.ts` | `chrome105` / `safari15` target, no sourcemaps, no preload polyfill | It only runs in WebView2 / WebKitGTK |
+| `vite.config.ts` | `chrome111` / `safari16.2` target, no sourcemaps, no preload polyfill | It only runs in WebView2 / WebKitGTK |
 
 On Linux this took the binary from 4.74 MB to 2.59 MB. `opt-level = "z"` only saves about another 4% and makes the code slower, so it stays on `"s"`.
 
@@ -91,13 +91,18 @@ The key → LED map is `keymap` in `src-tauri/src/input.rs`. It assumes a full-s
 
 Settings are saved to `%APPDATA%\com.barkafterbark.chromalite\config.json`.
 
+## Theme
+
+Every color, radius, spacing step, font size, size and duration lives in `src/tokens.css` as a CSS custom property. `src/styles.css` and the components only use those. To retheme, edit the base palette (`--ink-*`, `--ember-*`); the tints are `color-mix()`ed from it, so they follow along.
+
 ## Project layout
 
 ```
 src/
   App.tsx                  device tabs, workspace, layer ops, live save
   effects.ts               effect catalog: labels, defaults, summaries
-  styles.css               all styling
+  tokens.css               design tokens
+  styles.css               all styling, tokens only
   zoom.ts                  webview zoom + shortcuts
   components/
     TitleBar.tsx           custom window chrome

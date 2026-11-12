@@ -1,6 +1,7 @@
 import { render } from "solid-js/web";
 import App from "./App";
 import { installZoomShortcuts } from "./zoom";
+import "./tokens.css";
 import "./styles.css";
 
 // no browser right-click menu, so it feels like an app. text fields keep theirs
