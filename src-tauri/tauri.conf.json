@@ -32,6 +32,18 @@
       "nsis": {
         "installMode": "currentUser"
       }
+    },
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/lib/udev/rules.d/70-chroma-lite.rules": "linux/70-chroma-lite.rules"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/lib/udev/rules.d/70-chroma-lite.rules": "linux/70-chroma-lite.rules"
+        }
+      }
     }
   }
 }

@@ -1,0 +1,88 @@
+# ─ Release ────────────────────────────────────────────────────────────────────
+# builds Chroma Lite for every platform and uploads it to a draft GitHub release.
+# push a tag like v0.1.0 (matching "version" in tauri.conf.json), or run it by
+# hand from the Actions tab. the release stays a draft until you publish it.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows (x64)
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+          - name: macOS (Intel)
+            os: macos-latest
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+          - name: Linux (x64)
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,rpm,appimage
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # webkit + tray libs for tauri, libudev for hidapi
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev patchelf
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.target }}
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      # tauri.conf.json only lists nsis (for local builds), so each platform
+      # passes its own bundle types here
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tauriScript: bun tauri
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
+          releaseName: Chroma Lite ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
+          releaseBody: |
+            Builds for Windows, macOS (Apple Silicon + Intel) and Linux.
+
+            - **Windows:** `*-setup.exe` (per-user install, no admin needed)
+            - **macOS:** `.dmg`. Not signed, so the first launch needs right-click → Open.
+            - **Linux:** `.deb` / `.rpm` (installs a udev rule so it works without root), or `.AppImage` (add the rule yourself, see the README).
+
+            Idle-off and the reactive effects (key/click hooks) are Windows-only for now. On macOS and Linux the lights stay on and reactive layers don't react.
+          releaseDraft: true
+          prerelease: false

@@ -49,6 +49,24 @@ bun tauri dev
 
 The project uses Bun (`tauri.conf.json` runs `bun run dev` / `bun run build`). For npm, change those two commands and use `npm install` / `npm run tauri dev`.
 
+### Releases
+
+Pushing a tag like `v0.1.0` (matching `version` in `tauri.conf.json`) runs `.github/workflows/release.yml`, which builds for Windows, macOS (Apple Silicon and Intel) and Linux and puts everything in a draft GitHub release. Look it over, then publish it. You can also start it by hand from the Actions tab.
+
+```
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The builds aren't code-signed, so Windows SmartScreen and macOS Gatekeeper will warn on first launch. Idle-off and the reactive effects are Windows-only for now; on macOS and Linux the lights stay on and reactive layers don't react.
+
+On Linux the `.deb` and `.rpm` install a udev rule so the app can reach the Razer devices without root. For the AppImage, add it yourself:
+
+```
+sudo cp src-tauri/linux/70-chroma-lite.rules /etc/udev/rules.d/
+sudo udevadm control --reload && sudo udevadm trigger
+```
+
 ### Release build
 
 ```

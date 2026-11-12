@@ -1,0 +1,3 @@
+# let the logged-in user talk to Razer devices (vendor 1532) over hidraw,
+# so Chroma Lite doesn't need root
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", TAG+="uaccess"
