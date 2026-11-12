@@ -139,3 +139,7 @@ src-tauri/src/
   idle.rs                  GetLastInputInfo
   lib.rs                   Tauri commands, tray, window lifecycle
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).

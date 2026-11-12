@@ -3,6 +3,7 @@ name = "chroma-lite"
 version = "0.1.0"
 description = "Synapse-free lighting for Razer peripherals"
 edition = "2021"
+license = "MIT"
 
 [lib]
 name = "chroma_lite_lib"
