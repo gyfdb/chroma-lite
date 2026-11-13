@@ -15,6 +15,8 @@ export type LayerEffect =
       cooling: number;
       sparks: number;
       reactToKeys: boolean;
+      /** Embers while idle, flames grow with typing speed. */
+      typingHeat: boolean;
     }
   | { type: "solid"; color: Rgb }
   | { type: "breathing"; color: Rgb; periodSecs: number }
@@ -22,7 +24,20 @@ export type LayerEffect =
   | { type: "wave"; periodSecs: number; reverse: boolean }
   | { type: "reactive"; color: Rgb; fadeMs: number; trigger: Trigger }
   | { type: "ripple"; color: Rgb; speed: number; width: number; trigger: Trigger }
-  | { type: "starlight"; color: Rgb; density: number; fadeMs: number };
+  | { type: "starlight"; color: Rgb; density: number; fadeMs: number }
+  // ambient
+  | { type: "aurora"; colors: Rgb[]; speed: number }
+  | { type: "rain"; color: Rgb; density: number; speed: number }
+  | { type: "lava"; colors: Rgb[]; speed: number }
+  | { type: "candle"; color: Rgb; flicker: number }
+  | { type: "lightning"; color: Rgb; sky: Rgb; frequency: number; glow: number }
+  | { type: "timeOfDay"; day: Rgb; night: Rgb }
+  // reactive
+  | { type: "comet"; color: Rgb; fadeMs: number }
+  | { type: "shockwave"; color: Rgb; speed: number; trigger: Trigger }
+  | { type: "fireworks"; color: Rgb; rainbow: boolean; trigger: Trigger }
+  | { type: "frost"; color: Rgb; freezeSecs: number }
+  | { type: "clickCharge"; color: Rgb; chargeMs: number; fadeMs: number };
 
 export type EffectType = LayerEffect["type"];
 

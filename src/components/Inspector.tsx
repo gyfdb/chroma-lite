@@ -3,7 +3,7 @@ import { BuiltinPalette, hexToRgb, Layer, LayerEffect, Rgb, rgbToHex } from "../
 import { BLENDS, gradient, meta, PALETTES, TRIGGERS } from "../effects";
 import { Card, Chip, Divider, Icon, SegmentedButton, Switch } from "../aalto";
 import EffectIcon from "./EffectIcon";
-import { ColorField, Field, SliderField, SwitchRow } from "./ui";
+import { ColorField, Field, GradientField, SliderField, SwitchRow } from "./ui";
 
 const STOP_LABELS = ["Coolest", "Embers", "Flame", "Bright", "Hottest"];
 
@@ -154,6 +154,12 @@ export default function Inspector(props: {
                         checked={f().reactToKeys}
                         onChange={(v) => props.patchEffect({ reactToKeys: v })}
                       />
+                      <SwitchRow
+                        label="Grow with typing speed"
+                        hint="Embers while you're idle, full flames while you type"
+                        checked={f().typingHeat}
+                        onChange={(v) => props.patchEffect({ typingHeat: v })}
+                      />
                     </>
                   )}
                 </Match>
@@ -300,6 +306,244 @@ export default function Inspector(props: {
                         step={100}
                         value={s().fadeMs}
                         display={`${s().fadeMs} ms`}
+                        onInput={(v) => props.patchEffect({ fadeMs: v })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("aurora")}>
+                  {(a) => (
+                    <>
+                      <GradientField
+                        label="Colors"
+                        value={a().colors}
+                        onChange={(colors) => props.patchEffect({ colors })}
+                      />
+                      <SliderField
+                        label="Speed"
+                        min={0.2}
+                        max={3}
+                        step={0.1}
+                        value={a().speed}
+                        display={`${a().speed}×`}
+                        onInput={(v) => props.patchEffect({ speed: +v.toFixed(1) })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("rain")}>
+                  {(r) => (
+                    <>
+                      <ColorField value={r().color} onChange={(c) => props.patchEffect({ color: c })} />
+                      <SliderField
+                        label="Density"
+                        min={0.05}
+                        max={1}
+                        step={0.05}
+                        value={r().density}
+                        display={`${Math.round(r().density * 100)}%`}
+                        onInput={(v) => props.patchEffect({ density: v })}
+                      />
+                      <SliderField
+                        label="Fall speed"
+                        hint="rows per second"
+                        min={3}
+                        max={30}
+                        step={1}
+                        value={r().speed}
+                        display={`${r().speed}`}
+                        onInput={(v) => props.patchEffect({ speed: v })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("lava")}>
+                  {(l) => (
+                    <>
+                      <GradientField
+                        label="Colors"
+                        hint="Background on the left, hottest on the right"
+                        labels={["Background", "Cool", "Warm", "Hottest"]}
+                        value={l().colors}
+                        onChange={(colors) => props.patchEffect({ colors })}
+                      />
+                      <SliderField
+                        label="Speed"
+                        min={0.2}
+                        max={3}
+                        step={0.1}
+                        value={l().speed}
+                        display={`${l().speed}×`}
+                        onInput={(v) => props.patchEffect({ speed: +v.toFixed(1) })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("candle")}>
+                  {(c) => (
+                    <>
+                      <ColorField value={c().color} onChange={(v) => props.patchEffect({ color: v })} />
+                      <SliderField
+                        label="Flicker"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={c().flicker}
+                        display={`${Math.round(c().flicker * 100)}%`}
+                        onInput={(v) => props.patchEffect({ flicker: v })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("lightning")}>
+                  {(l) => (
+                    <>
+                      <ColorField label="Bolt color" value={l().color} onChange={(c) => props.patchEffect({ color: c })} />
+                      <ColorField label="Sky color" value={l().sky} onChange={(c) => props.patchEffect({ sky: c })} />
+                      <SliderField
+                        label="Strikes"
+                        hint="roughly, per minute"
+                        min={1}
+                        max={30}
+                        step={1}
+                        value={l().frequency}
+                        display={`${l().frequency}`}
+                        onInput={(v) => props.patchEffect({ frequency: v })}
+                      />
+                      <SliderField
+                        label="Sky glow"
+                        min={0}
+                        max={0.6}
+                        step={0.05}
+                        value={l().glow}
+                        display={`${Math.round(l().glow * 100)}%`}
+                        onInput={(v) => props.patchEffect({ glow: v })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("timeOfDay")}>
+                  {(d) => (
+                    <>
+                      <ColorField label="Daytime" value={d().day} onChange={(c) => props.patchEffect({ day: c })} />
+                      <ColorField label="Night" value={d().night} onChange={(c) => props.patchEffect({ night: c })} />
+                      <p class="body-small muted">
+                        Turns warm around sunrise (5 to 8) and sunset (17 to 21). It only updates about once a
+                        second, so it costs next to nothing.
+                      </p>
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("comet")}>
+                  {(c) => (
+                    <>
+                      <ColorField value={c().color} onChange={(v) => props.patchEffect({ color: v })} />
+                      <SliderField
+                        label="Trail length"
+                        min={200}
+                        max={2000}
+                        step={50}
+                        value={c().fadeMs}
+                        display={`${c().fadeMs} ms`}
+                        onInput={(v) => props.patchEffect({ fadeMs: v })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("shockwave")}>
+                  {(w) => (
+                    <>
+                      <ColorField value={w().color} onChange={(c) => props.patchEffect({ color: c })} />
+                      <Field label="Reacts to">
+                        <SegmentedButton
+                          label="Reacts to"
+                          value={w().trigger}
+                          options={TRIGGERS}
+                          onChange={(v: string) => props.patchEffect({ trigger: v })}
+                        />
+                      </Field>
+                      <SliderField
+                        label="Speed"
+                        min={8}
+                        max={60}
+                        step={1}
+                        value={w().speed}
+                        display={`${w().speed}`}
+                        onInput={(v) => props.patchEffect({ speed: v })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("fireworks")}>
+                  {(f) => (
+                    <>
+                      <SwitchRow
+                        label="Rainbow"
+                        hint="A random color for every burst"
+                        checked={f().rainbow}
+                        onChange={(v) => props.patchEffect({ rainbow: v })}
+                      />
+                      <Show when={!f().rainbow}>
+                        <ColorField value={f().color} onChange={(c) => props.patchEffect({ color: c })} />
+                      </Show>
+                      <Field label="Reacts to">
+                        <SegmentedButton
+                          label="Reacts to"
+                          value={f().trigger}
+                          options={TRIGGERS}
+                          onChange={(v: string) => props.patchEffect({ trigger: v })}
+                        />
+                      </Field>
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("frost")}>
+                  {(f) => (
+                    <>
+                      <ColorField value={f().color} onChange={(c) => props.patchEffect({ color: c })} />
+                      <SliderField
+                        label="Freezes over in"
+                        min={5}
+                        max={300}
+                        step={5}
+                        value={f().freezeSecs}
+                        display={f().freezeSecs >= 60 ? `${+(f().freezeSecs / 60).toFixed(1)} min` : `${f().freezeSecs}s`}
+                        onInput={(v) => props.patchEffect({ freezeSecs: v })}
+                      />
+                    </>
+                  )}
+                </Match>
+
+                <Match when={as("clickCharge")}>
+                  {(c) => (
+                    <>
+                      <ColorField value={c().color} onChange={(v) => props.patchEffect({ color: v })} />
+                      <SliderField
+                        label="Time to full charge"
+                        min={200}
+                        max={3000}
+                        step={50}
+                        value={c().chargeMs}
+                        display={`${c().chargeMs} ms`}
+                        onInput={(v) => props.patchEffect({ chargeMs: v })}
+                      />
+                      <SliderField
+                        label="Flash fade"
+                        min={100}
+                        max={2000}
+                        step={50}
+                        value={c().fadeMs}
+                        display={`${c().fadeMs} ms`}
                         onInput={(v) => props.patchEffect({ fadeMs: v })}
                       />
                     </>

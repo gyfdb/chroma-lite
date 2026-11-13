@@ -130,3 +130,33 @@ export function ColorField(props: { label?: string; value: Rgb; onChange: (c: Rg
     </Field>
   );
 }
+
+/** A fixed set of color stops with a live gradient preview (aurora, lava lamp). */
+export function GradientField(props: { label: string; hint?: string; value: Rgb[]; labels?: string[]; onChange: (stops: Rgb[]) => void }) {
+  const css = () => `linear-gradient(90deg, ${props.value.map(rgbToHex).join(", ")})`;
+  return (
+    <Field label={props.label} hint={props.hint}>
+      <div class="custom-palette">
+        <div class="gradient-bar" style={{ background: css() }} />
+        <div class="stops" style={{ "grid-template-columns": `repeat(${props.value.length}, minmax(0, 1fr))` }}>
+          <For each={props.value}>
+            {(stop, i) => (
+              <label class="stop aa-sl">
+                <input
+                  type="color"
+                  value={rgbToHex(stop)}
+                  onInput={(e) => {
+                    const next = props.value.map((s) => [...s] as Rgb);
+                    next[i()] = hexToRgb(e.currentTarget.value);
+                    props.onChange(next);
+                  }}
+                />
+                <span>{props.labels?.[i()] ?? `Color ${i() + 1}`}</span>
+              </label>
+            )}
+          </For>
+        </div>
+      </div>
+    </Field>
+  );
+}
