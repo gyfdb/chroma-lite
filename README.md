@@ -14,13 +14,24 @@ Each device has a stack of layers, composited top over bottom:
 
 | Effect | What it does |
 |---|---|
-| **Fire** | Heat simulation with 4 built-in palettes or your own 5-stop gradient, flame height, intensity, and an optional flare where you type |
+| **Fire** | Heat simulation with 4 built-in palettes or your own 5-stop gradient, flame height, intensity, an optional flare where you type, and optional typing heat (embers while idle, full flames while you type) |
 | **Solid / Breathing / Spectrum / Wave** | The classic ambient effects |
 | **Starlight** | Random keys twinkle |
+| **Aurora** | Curtains of color drifting across, from your own gradient |
+| **Rain** | Drops fall down the columns and splash on the bottom row |
+| **Lava lamp** | Soft blobs that merge and split |
+| **Candle** | A warm, uneven flicker |
+| **Lightning** | A dim storm sky with the odd double-flash strike |
+| **Time of day** | Follows the clock: a night color after dark, a day color in daylight, warm around sunrise and sunset |
 | **Reactive** | Pressed keys (or clicks) light up and fade |
 | **Ripple** | Rings spread out from each key press or click |
+| **Comet** | Typing draws a fading streak from the last key to the new one |
+| **Shockwave** | A press blasts a line out along its row and column |
+| **Fireworks** | A spark shoots up from the key and bursts, in one color or rainbow |
+| **Frost** | Keys you haven't touched slowly frost over; typing thaws them |
+| **Click charge** | Holding a mouse button charges the light up; letting go flashes it |
 
-- **Add effect ▾** adds a layer from the menu.
+- **Add effect** adds a layer from the list.
 - Drag a layer to reorder it (Alt+↑/↓ works too, Delete removes the focused one). Click a layer to edit it in the inspector on the right.
 - Every layer has a blend mode (Normal, Add, Screen, Lighten, Multiply) and an opacity. Ripple on Screen at 80% over Fire gives rings that push through the flames; Reactive on Add over anything gives key-press flashes.
 - The eye icon hides a layer without deleting it.
