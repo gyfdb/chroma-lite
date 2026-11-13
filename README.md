@@ -1,5 +1,7 @@
 # Chroma Lite
 
+[![Release](https://github.com/gyfdb/chroma-lite/actions/workflows/release.yml/badge.svg)](https://github.com/gyfdb/chroma-lite/actions/workflows/release.yml)
+
 I wanted my Razer keyboard and mouse to look good without Synapse running in the background all the time, so I made my own. Chroma Lite talks to the devices directly over USB HID and sits in the system tray. It does the one job I actually need: light the gear up while I'm using the PC, and turn it off when I'm not.
 
 Built with Tauri 2, Rust, Solid, TypeScript and Vite. Windows for now.
