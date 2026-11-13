@@ -5,8 +5,8 @@
 
 :root {
   /* the LED preview panel stays dark in both themes so the colors read true */
-  --led-panel: var(--aalto-charcoal);
-  --led-off: #463c3d;
+  --led-panel: #231a13;
+  --led-off: #3e332b;
 }
 
 html,

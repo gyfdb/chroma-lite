@@ -25,7 +25,7 @@ export default function Preview(props: {
     const ctx = canvas.getContext("2d")!;
     // canvas can't use CSS vars directly, so read the token once. the LED panel
     // stays dark in both themes, so this never changes with the theme
-    const ledOff = getComputedStyle(document.documentElement).getPropertyValue("--led-off").trim() || "#463c3d";
+    const ledOff = getComputedStyle(document.documentElement).getPropertyValue("--led-off").trim() || "#3e332b";
     let alive = true;
     let raf = 0;
 
