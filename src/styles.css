@@ -560,15 +560,50 @@ main {
   color: var(--on-secondary-container);
 }
 
+/* the spot a dragged row came from: same size, empty, dashed outline */
 .layer.is-dragging {
-  position: relative;
-  z-index: 1;
-  background: var(--surface-container-high);
-  box-shadow: var(--elevation-5);
+  background: transparent;
+  outline: 2px dashed var(--outline);
+  outline-offset: -2px;
+  box-shadow: none;
 }
 
 .layer.is-dragging::before {
-  opacity: var(--state-dragged);
+  opacity: 0;
+}
+
+.layer.is-dragging > * {
+  visibility: hidden;
+}
+
+/* the lifted copy that follows the pointer */
+.drag-ghost {
+  position: fixed;
+  z-index: 100;
+  margin: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+  cursor: grabbing;
+  background: var(--surface-container-high);
+  box-shadow: var(--elevation-1);
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), box-shadow 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.drag-ghost.is-lifted {
+  transform: rotate(2deg) scale(1.02);
+  box-shadow: var(--elevation-5);
+}
+
+.drag-ghost.is-dropping {
+  transition: transform 200ms cubic-bezier(0.2, 0, 0, 1), box-shadow 200ms cubic-bezier(0.2, 0, 0, 1),
+    left 200ms cubic-bezier(0.2, 0, 0, 1), top 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drag-ghost,
+  .drag-ghost.is-dropping {
+    transition: none;
+  }
 }
 
 .layer.is-hidden .effect-tile,

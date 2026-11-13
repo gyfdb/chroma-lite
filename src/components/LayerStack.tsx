@@ -26,17 +26,46 @@ export default function LayerStack(props: {
 
   const onPointerDown = (id: string, e: PointerEvent) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest("button")) return;
+    const row = e.currentTarget as HTMLElement;
+    const startX = e.clientX;
     const startY = e.clientY;
-    let started = false;
+    let ghost: HTMLElement | null = null;
+    let grabX = 0;
+    let grabY = 0;
+
+    const place = (x: number, y: number) => {
+      ghost!.style.left = `${x - grabX}px`;
+      ghost!.style.top = `${y - grabY}px`;
+    };
+
+    // the row itself stays in the list as the dashed empty slot; what follows
+    // the pointer is a copy of it, lifted and tilted
+    const lift = (ev: PointerEvent) => {
+      const r = row.getBoundingClientRect();
+      grabX = startX - r.left;
+      grabY = startY - r.top;
+      ghost = row.cloneNode(true) as HTMLElement;
+      ghost.removeAttribute("data-layer-id");
+      ghost.removeAttribute("tabindex");
+      ghost.setAttribute("aria-hidden", "true");
+      ghost.classList.add("drag-ghost");
+      ghost.style.width = `${r.width}px`;
+      ghost.style.height = `${r.height}px`;
+      document.body.appendChild(ghost);
+      place(ev.clientX, ev.clientY);
+      // next frame, so the tilt animates in instead of snapping
+      requestAnimationFrame(() => ghost?.classList.add("is-lifted"));
+      setDragId(id);
+      document.body.classList.add("dragging-layer");
+    };
 
     const move = (ev: PointerEvent) => {
-      if (!started) {
-        if (Math.abs(ev.clientY - startY) < 5) return;
-        started = true;
-        setDragId(id);
-        document.body.classList.add("dragging-layer");
+      if (!ghost) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
+        lift(ev);
       }
       ev.preventDefault();
+      place(ev.clientX, ev.clientY);
       const from = props.layers.findIndex((l) => l.id === id);
       const others = [...list.querySelectorAll<HTMLElement>("[data-layer-id]")].filter(
         (el) => el.dataset.layerId !== id,
@@ -51,13 +80,33 @@ export default function LayerStack(props: {
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
       document.body.classList.remove("dragging-layer");
-      setDragId(null);
-      if (!started) props.onSelect(id);
+      if (!ghost) {
+        props.onSelect(id);
+        return;
+      }
+      // settle the copy into the empty slot, then drop it and show the real row
+      const g = ghost;
+      const slot = list.querySelector<HTMLElement>(`[data-layer-id="${id}"]`)?.getBoundingClientRect();
+      g.classList.add("is-dropping");
+      g.classList.remove("is-lifted");
+      if (slot) {
+        g.style.left = `${slot.left}px`;
+        g.style.top = `${slot.top}px`;
+      }
+      const done = () => {
+        g.remove();
+        setDragId(null);
+      };
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (reduced) done();
+      else setTimeout(done, 200);
     };
 
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
   const onKeyDown = (i: number, id: string, e: KeyboardEvent) => {
