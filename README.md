@@ -109,23 +109,29 @@ The key → LED map is `keymap` in `src-tauri/src/input.rs`. It assumes a full-s
 
 Settings are saved to `%APPDATA%\com.barkafterbark.chromalite\config.json`.
 
-## Theme
+## Design
 
-Every color, radius, spacing step, font size, size and duration lives in `src/tokens.css` as a CSS custom property. `src/styles.css` and the components only use those. To retheme, edit the base palette (`--ink-*`, `--ember-*`); the tints are `color-mix()`ed from it, so they follow along.
+The UI is built on Aalto, a Material 3 design system for Solid. Its components live in `src/aalto/` (copied in as source, no extra dependency) and its tokens in `src/tokens.css`: the light and dark color roles, the type scale, shapes, spacing and elevation. `src/styles.css` only lays things out and only uses those tokens.
+
+The theme follows the system by default; Settings can pin it to light or dark. Fonts (Oswald, Roboto Flex and Material Symbols Rounded) are bundled through Fontsource, so nothing loads from the network.
 
 ## Project layout
 
 ```
 src/
-  App.tsx                  device tabs, workspace, layer ops, live save
+  App.tsx                  navigation rail, device/add/settings pages, layer ops, live save
   effects.ts               effect catalog: labels, defaults, summaries
-  tokens.css               design tokens
-  styles.css               all styling, tokens only
+  tokens.css               Aalto design tokens (light + dark)
+  styles.css               app layout, tokens only
+  theme.ts                 system / light / dark preference
+  fonts.ts                 bundled fonts
   zoom.ts                  webview zoom + shortcuts
+  aalto/                   Aalto components (Solid + TS) and their stylesheet
   components/
     TitleBar.tsx           custom window chrome
-    LayerStack.tsx         sortable layer boxes
-    AddEffectMenu.tsx      "Add effect" dropdown
+    LayerStack.tsx         sortable layer rows
+    AddEffectDialog.tsx    "Add effect" dialog
+    ui.tsx                 slider, switch and color fields built on Aalto
     EffectIcon.tsx         SVG icon per effect
     Inspector.tsx          settings for the selected layer
     Preview.tsx            live preview (frames come from the engine)

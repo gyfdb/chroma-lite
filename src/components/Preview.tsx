@@ -1,5 +1,6 @@
 import { onCleanup, onMount, Show } from "solid-js";
 import { api, DeviceCfg, DeviceStatus, Frame } from "../api";
+import { Card, Icon } from "../aalto";
 
 const GAP = 4;
 
@@ -22,8 +23,9 @@ export default function Preview(props: {
 
   onMount(() => {
     const ctx = canvas.getContext("2d")!;
-    // canvas can't use CSS vars directly, so read the token once
-    const ledOff = getComputedStyle(document.documentElement).getPropertyValue("--color-led-off").trim() || "#1b1b22";
+    // canvas can't use CSS vars directly, so read the token once. the LED panel
+    // stays dark in both themes, so this never changes with the theme
+    const ledOff = getComputedStyle(document.documentElement).getPropertyValue("--led-off").trim() || "#463c3d";
     let alive = true;
     let raf = 0;
 
@@ -85,23 +87,31 @@ export default function Preview(props: {
   const mode = () => props.status?.mode ?? "stream";
 
   return (
-    <section class="card preview-card">
-      <div class="preview-badges">
-        <span class={`badge ${mode()}`}>
-          {mode() === "device" ? "On device · 0% CPU" : mode() === "off" ? "Off" : `Streaming · ${+props.fps.toFixed(2)} fps`}
-        </span>
-        <Show when={props.hooks !== 0}>
-          <span class="badge listen" title="Global input hooks are installed only while a lit layer reacts to them">
-            Listening for {props.hooks === 3 ? "keys + clicks" : props.hooks === 1 ? "keys" : "clicks"}
+    <Card variant="outlined" class="section preview-card">
+      <header class="section-head">
+        <h2 class="title-medium">Preview</h2>
+        <div class="tags">
+          <span class={`tag ${mode()}`}>
+            <Icon name={mode() === "device" ? "memory" : mode() === "off" ? "power_settings_new" : "stream"} size={16} />
+            {mode() === "device" ? "On device · 0% CPU" : mode() === "off" ? "Off" : `Streaming · ${+props.fps.toFixed(2)} fps`}
           </span>
-        </Show>
-        <Show when={props.dark}>
-          <span class="badge">Idle — lights off</span>
-        </Show>
-      </div>
+          <Show when={props.hooks !== 0}>
+            <span class="tag" title="Input hooks are only installed while a lit layer reacts to them">
+              <Icon name={props.hooks === 2 ? "mouse" : "keyboard"} size={16} />
+              Listening for {props.hooks === 3 ? "keys and clicks" : props.hooks === 1 ? "keys" : "clicks"}
+            </span>
+          </Show>
+          <Show when={props.dark}>
+            <span class="tag">
+              <Icon name="bedtime" size={16} />
+              Idle, lights off
+            </span>
+          </Show>
+        </div>
+      </header>
       <div class="preview-wrap" ref={wrap}>
         <canvas ref={canvas} class="preview" />
       </div>
-    </section>
+    </Card>
   );
 }

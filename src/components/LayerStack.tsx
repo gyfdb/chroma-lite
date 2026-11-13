@@ -1,12 +1,13 @@
 import { createSignal, For, Show } from "solid-js";
 import { EffectType, Layer } from "../api";
 import { BLENDS, effectColor, meta, summary } from "../effects";
-import AddEffectMenu from "./AddEffectMenu";
+import { Button, Card, Icon, IconButton } from "../aalto";
+import AddEffectDialog from "./AddEffectDialog";
 import EffectIcon from "./EffectIcon";
 
 /**
- * Sortable stack of effect boxes. Drag a box (or its grip) up or down to
- * reorder it; the top of the list draws on top.
+ * Sortable stack of effect rows. Drag a row up or down to reorder it; the top
+ * of the list draws on top.
  */
 // uses pointer events instead of HTML5 drag-and-drop, so Tauri's file-drop
 // handling can't get in the way
@@ -20,6 +21,7 @@ export default function LayerStack(props: {
   onAdd: (t: EffectType) => void;
 }) {
   const [dragId, setDragId] = createSignal<string | null>(null);
+  const [adding, setAdding] = createSignal(false);
   let list!: HTMLDivElement;
 
   const onPointerDown = (id: string, e: PointerEvent) => {
@@ -59,6 +61,7 @@ export default function LayerStack(props: {
   };
 
   const onKeyDown = (i: number, id: string, e: KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       props.onSelect(id);
@@ -74,37 +77,39 @@ export default function LayerStack(props: {
   };
 
   return (
-    <section class="card layers">
-      <header class="layers-head">
+    <Card variant="outlined" class="section layers">
+      <header class="section-head">
         <div>
-          <h2>Layers</h2>
-          <p class="hint">Top draws over bottom · drag to reorder</p>
+          <h2 class="title-medium">Layers</h2>
+          <p class="body-small muted">Top draws over bottom. Drag to reorder.</p>
         </div>
-        <AddEffectMenu onAdd={props.onAdd} />
+        <Button variant="tonal" icon="add" onClick={() => setAdding(true)}>
+          Add effect
+        </Button>
       </header>
 
       <div class="stack" ref={list}>
         <Show
           when={props.layers.length > 0}
           fallback={
-            <div class="empty-drop">
-              <p>No effects yet.</p>
-              <p class="muted">Use “Add effect” to stack fire, ripples, starlight…</p>
+            <div class="empty">
+              <Icon name="layers" size={32} />
+              <p class="body-large">No effects yet</p>
+              <p class="body-medium muted">Add fire, ripples or starlight and stack them however you like.</p>
             </div>
           }
         >
-          <span class="stack-edge">top</span>
           <For each={props.layers}>
             {(layer, i) => {
               const m = () => meta(layer.effect.type);
               const swatch = () => effectColor(layer.effect);
               return (
                 <div
-                  class="layer"
+                  class="layer aa-sl"
                   classList={{
-                    selected: props.selectedId === layer.id,
-                    dragging: dragId() === layer.id,
-                    disabled: !layer.enabled,
+                    "is-selected": props.selectedId === layer.id,
+                    "is-dragging": dragId() === layer.id,
+                    "is-hidden": !layer.enabled,
                   }}
                   data-layer-id={layer.id}
                   tabIndex={0}
@@ -112,20 +117,18 @@ export default function LayerStack(props: {
                   onKeyDown={(e) => onKeyDown(i(), layer.id, e)}
                   aria-label={`${m().label} layer`}
                 >
-                  <span class="grip" aria-hidden="true">
-                    ⋮⋮
-                  </span>
-                  <span class="icon-tile">
+                  <Icon name="drag_indicator" class="grip" />
+                  <span class="effect-tile">
                     <EffectIcon type={layer.effect.type} size={22} />
                   </span>
                   <span class="layer-text">
-                    <strong>
+                    <span class="body-large layer-name">
                       {m().label}
                       <Show when={swatch()}>
                         <span class="dot-swatch" style={{ background: swatch()! }} />
                       </Show>
-                    </strong>
-                    <span class="muted">
+                    </span>
+                    <span class="body-medium muted">
                       {summary(layer.effect)}
                       <Show when={i() < props.layers.length - 1}>
                         {" · "}
@@ -134,37 +137,20 @@ export default function LayerStack(props: {
                       <Show when={layer.opacity < 1}> · {Math.round(layer.opacity * 100)}%</Show>
                     </span>
                   </span>
-                  <button
-                    class="icon-btn"
-                    title={layer.enabled ? "Hide layer" : "Show layer"}
+                  <IconButton
+                    icon={layer.enabled ? "visibility" : "visibility_off"}
+                    label={layer.enabled ? "Hide layer" : "Show layer"}
                     onClick={() => props.onToggle(layer.id)}
-                  >
-                    <Show
-                      when={layer.enabled}
-                      fallback={
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c5 0 9 6 9 6a17 17 0 0 1-3 3.6M6.6 6.6C4.3 8.2 3 12 3 12s4 6 9 6c1.4 0 2.7-.4 3.8-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                        </svg>
-                      }
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M3 12s4-6 9-6 9 6 9 6-4 6-9 6-9-6-9-6Z" stroke="currentColor" stroke-width="1.8" />
-                        <circle cx="12" cy="12" r="2.6" fill="currentColor" />
-                      </svg>
-                    </Show>
-                  </button>
-                  <button class="icon-btn danger" title="Remove layer" onClick={() => props.onRemove(layer.id)}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
-                  </button>
+                  />
+                  <IconButton icon="delete" label="Remove layer" onClick={() => props.onRemove(layer.id)} />
                 </div>
               );
             }}
           </For>
-          <span class="stack-edge">bottom</span>
         </Show>
       </div>
-    </section>
+
+      <AddEffectDialog open={adding()} onClose={() => setAdding(false)} onAdd={props.onAdd} />
+    </Card>
   );
 }

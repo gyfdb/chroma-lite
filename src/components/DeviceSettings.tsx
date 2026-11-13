@@ -1,11 +1,16 @@
+import { createSignal, Show } from "solid-js";
 import { DeviceCfg, hex } from "../api";
-import { Field, Slider, Toggle } from "./ui";
+import { Button, Card, Dialog, TextField } from "../aalto";
+import { SliderField, SwitchRow } from "./ui";
 
 export default function DeviceSettings(props: {
   device: DeviceCfg;
   set: <K extends keyof DeviceCfg>(key: K, value: DeviceCfg[K]) => void;
   onRemove: () => void;
 }) {
+  const [advanced, setAdvanced] = createSignal(false);
+  const [confirming, setConfirming] = createSignal(false);
+
   const parseLeds = (s: string) =>
     s
       .split(/[\s,]+/)
@@ -13,79 +18,121 @@ export default function DeviceSettings(props: {
       .map((x) => parseInt(x, x.toLowerCase().startsWith("0x") ? 16 : 10))
       .filter((n) => !Number.isNaN(n) && n >= 0 && n < 256);
 
-  return (
-    <section class="card">
-      <h2>Device</h2>
-      <Slider
-        label="Brightness"
-        min={0}
-        max={255}
-        step={1}
-        value={props.device.brightness}
-        display={`${Math.round((props.device.brightness / 255) * 100)}%`}
-        onInput={(v) => props.set("brightness", Math.round(v))}
-      />
-      <div class="row-between">
-        <span class="label">
-          Let the device run simple effects
-          <span class="muted"> — single Solid/Breathing/Spectrum/Wave layer uses 0% CPU</span>
-        </span>
-        <Toggle checked={props.device.preferHardware} onChange={(v) => props.set("preferHardware", v)} />
-      </div>
+  const parseHex = (s: string) => parseInt(s.trim().replace(/^0x/i, ""), 16);
 
-      <details class="advanced">
-        <summary>Advanced</summary>
-        <div class="grid">
-          <Field label="Name">
-            <input value={props.device.name} onChange={(e) => props.set("name", e.currentTarget.value)} />
-          </Field>
-          <Field label="PID (hex)">
-            <input
-              value={hex(props.device.pid, 4)}
-              onChange={(e) => {
-                const n = parseInt(e.currentTarget.value, 16);
+  return (
+    <Card variant="outlined" class="section">
+      <header class="section-head">
+        <h2 class="title-medium">Device</h2>
+      </header>
+      <div class="section-body">
+        <SliderField
+          label="Brightness"
+          min={0}
+          max={255}
+          step={1}
+          value={props.device.brightness}
+          display={`${Math.round((props.device.brightness / 255) * 100)}%`}
+          onInput={(v) => props.set("brightness", Math.round(v))}
+        />
+        <SwitchRow
+          label="Let the device run simple effects"
+          hint="A single Solid, Breathing, Spectrum or Wave layer then uses 0% CPU"
+          checked={props.device.preferHardware}
+          onChange={(v) => props.set("preferHardware", v)}
+        />
+
+        <Button
+          variant="text"
+          class="disclosure"
+          trailingIcon={advanced() ? "expand_less" : "expand_more"}
+          aria-expanded={advanced()}
+          onClick={() => setAdvanced(!advanced())}
+        >
+          Advanced
+        </Button>
+
+        <Show when={advanced()}>
+          {/* uncontrolled on purpose: edits apply as you type, and the box keeps
+              what you typed instead of reformatting it mid-edit */}
+          <div class="grid">
+            <TextField
+              variant="outlined"
+              label="Name"
+              defaultValue={props.device.name}
+              onChange={(v) => v.trim() && props.set("name", v.trim())}
+            />
+            <TextField
+              variant="outlined"
+              label="PID (hex)"
+              defaultValue={hex(props.device.pid, 4)}
+              onChange={(v) => {
+                const n = parseHex(v);
                 if (!Number.isNaN(n)) props.set("pid", n);
               }}
             />
-          </Field>
-          <Field label="Transaction ID">
-            <input
-              value={hex(props.device.transactionId)}
-              onChange={(e) => {
-                const n = parseInt(e.currentTarget.value, 16);
+            <TextField
+              variant="outlined"
+              label="Transaction ID"
+              defaultValue={hex(props.device.transactionId)}
+              onChange={(v) => {
+                const n = parseHex(v);
                 if (!Number.isNaN(n)) props.set("transactionId", n & 255);
               }}
             />
-          </Field>
-          <Field label="LED zone ids">
-            <input
-              value={props.device.leds.map((l) => hex(l)).join(", ")}
-              onChange={(e) => props.set("leds", parseLeds(e.currentTarget.value))}
+            <TextField
+              variant="outlined"
+              label="LED zone ids"
+              defaultValue={props.device.leds.map((l) => hex(l)).join(", ")}
+              onChange={(v) => props.set("leds", parseLeds(v))}
             />
-          </Field>
-          <Field label="Matrix rows">
-            <input
+            <TextField
+              variant="outlined"
+              label="Matrix rows"
               type="number"
-              min="1"
-              max="12"
-              value={props.device.rows}
-              onChange={(e) => props.set("rows", Math.max(1, Math.min(12, +e.currentTarget.value || 1)))}
+              supporting="1 to 12"
+              defaultValue={String(props.device.rows)}
+              onChange={(v) => +v > 0 && props.set("rows", Math.min(12, Math.round(+v)))}
             />
-          </Field>
-          <Field label="Matrix columns">
-            <input
+            <TextField
+              variant="outlined"
+              label="Matrix columns"
               type="number"
-              min="1"
-              max="25"
-              value={props.device.cols}
-              onChange={(e) => props.set("cols", Math.max(1, Math.min(25, +e.currentTarget.value || 1)))}
+              supporting="1 to 25"
+              defaultValue={String(props.device.cols)}
+              onChange={(v) => +v > 0 && props.set("cols", Math.min(25, Math.round(+v)))}
             />
-          </Field>
-        </div>
-        <button class="ghost danger-text" onClick={props.onRemove}>
-          Remove this device
-        </button>
-      </details>
-    </section>
+          </div>
+          <Button variant="outlined" icon="delete" class="danger" onClick={() => setConfirming(true)}>
+            Remove this device
+          </Button>
+        </Show>
+      </div>
+
+      <Dialog
+        open={confirming()}
+        onClose={() => setConfirming(false)}
+        icon="delete"
+        headline={`Remove ${props.device.name}?`}
+        actions={
+          <>
+            <Button variant="text" onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="text"
+              onClick={() => {
+                setConfirming(false);
+                props.onRemove();
+              }}
+            >
+              Remove
+            </Button>
+          </>
+        }
+      >
+        Its layers and settings are deleted. You can add it again with a scan.
+      </Dialog>
+    </Card>
   );
 }

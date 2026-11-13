@@ -1,5 +1,6 @@
 import { createSignal, JSX, onCleanup, onMount } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Icon, IconButton } from "../aalto";
 import { zoom, zoomIn, zoomOut, zoomReset } from "../zoom";
 
 /**
@@ -31,10 +32,8 @@ export default function TitleBar(props: { children?: JSX.Element }) {
   return (
     <header class="titlebar" data-tauri-drag-region>
       <div class="tb-brand" data-tauri-drag-region>
-        <span class="flame" data-tauri-drag-region>
-          🔥
-        </span>
-        <span class="tb-title" data-tauri-drag-region>
+        <Icon name="local_fire_department" filled class="tb-flame" />
+        <span class="title-small" data-tauri-drag-region>
           Chroma Lite
         </span>
       </div>
@@ -44,48 +43,33 @@ export default function TitleBar(props: { children?: JSX.Element }) {
       <div class="tb-extras">{props.children}</div>
 
       <div class="tb-zoom" title="Zoom (Ctrl + / Ctrl − / Ctrl 0, or Ctrl + wheel)">
-        <button class="tb-zbtn" onClick={zoomOut} aria-label="Zoom out">
-          −
-        </button>
-        <button class="tb-zlabel" onClick={zoomReset} aria-label="Reset zoom">
+        <IconButton icon="remove" label="Zoom out" size="xs" onClick={zoomOut} />
+        <button type="button" class="tb-zlabel label-medium aa-sl" onClick={zoomReset} aria-label="Reset zoom">
           {Math.round(zoom() * 100)}%
         </button>
-        <button class="tb-zbtn" onClick={zoomIn} aria-label="Zoom in">
-          +
-        </button>
+        <IconButton icon="add" label="Zoom in" size="xs" onClick={zoomIn} />
       </div>
 
       <div class="tb-controls">
-        <button class="tb-btn" aria-label="Minimize" onClick={() => win?.minimize()}>
-          <svg width="10" height="10" viewBox="0 0 10 10">
-            <path d="M0 5h10" stroke="currentColor" stroke-width="1" />
-          </svg>
+        <button type="button" class="tb-btn aa-sl" aria-label="Minimize" onClick={() => win?.minimize()}>
+          <Icon name="minimize" size={18} />
         </button>
         <button
-          class="tb-btn"
+          type="button"
+          class="tb-btn aa-sl"
           aria-label={maximized() ? "Restore" : "Maximize"}
           onClick={() => win?.toggleMaximize()}
         >
-          {maximized() ? (
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M2.5 2.5V.5h7v7h-2" stroke="currentColor" />
-              <rect x=".5" y="2.5" width="7" height="7" stroke="currentColor" />
-            </svg>
-          ) : (
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <rect x=".5" y=".5" width="9" height="9" stroke="currentColor" />
-            </svg>
-          )}
+          <Icon name={maximized() ? "filter_none" : "crop_square"} size={16} />
         </button>
         <button
-          class="tb-btn close"
+          type="button"
+          class="tb-btn close aa-sl"
           aria-label="Close to tray"
           title="Close (keeps running in the tray)"
           onClick={() => win?.close()}
         >
-          <svg width="10" height="10" viewBox="0 0 10 10">
-            <path d="M0 0l10 10M10 0L0 10" stroke="currentColor" stroke-width="1.1" />
-          </svg>
+          <Icon name="close" size={18} />
         </button>
       </div>
     </header>
