@@ -85,10 +85,42 @@ body.dragging-layer * {
   min-height: 0;
 }
 
-.body > .aa-rail {
+/* the rail scrolls its devices; add and settings stay pinned at the bottom */
+.sidebar {
   flex: none;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background: var(--surface-container-low);
+}
+
+.sidebar > .aa-rail {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  overflow-y: auto;
+  background: transparent;
+}
+
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 var(--space-6);
+}
+
+.sidebar.is-expanded .sidebar-bottom {
+  align-items: flex-start;
+  padding-left: var(--space-5);
+  padding-right: var(--space-5);
+}
+
+.sidebar-bottom .aa-fab {
+  box-shadow: none;
+}
+
+.sidebar-bottom .aa-fab.is-current {
+  border-radius: var(--shape-extra-large);
 }
 
 /* long device names wrap under the icon instead of overflowing the rail */

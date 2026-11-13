@@ -8,7 +8,7 @@ import LayerStack from "./components/LayerStack";
 import Preview from "./components/Preview";
 import TitleBar from "./components/TitleBar";
 import { Field, SliderField } from "./components/ui";
-import { Button, Card, Icon, IconButton, List, ListItem, NavigationRail, SegmentedButton, Snackbar, Switch } from "./aalto";
+import { Button, Card, ExtendedFAB, FAB, Icon, IconButton, List, ListItem, NavigationRail, SegmentedButton, Snackbar, Switch } from "./aalto";
 import { zoom, zoomIn, zoomOut, zoomReset } from "./zoom";
 import { setTheme, theme, ThemePref } from "./theme";
 
@@ -203,7 +203,8 @@ export default function App() {
     return devStatus()?.mode === "device" && active.length === 1 && active[0].id === l.id;
   };
 
-  const railValue = () => (sel() === SETTINGS ? "settings" : sel() === ADD_DEVICE ? "add" : String(sel()));
+  // only devices live in the rail list; add and settings sit in the bottom section
+  const railValue = () => (sel() >= 0 ? String(sel()) : "");
   const railItems = () => [
     ...config.devices.map((d, i) => ({
       value: String(i),
@@ -212,7 +213,6 @@ export default function App() {
       // a dot on devices that aren't answering
       badge: status() && !status()!.devices[i]?.connected ? (true as const) : undefined,
     })),
-    { value: "settings", label: "Settings", icon: "settings" },
   ];
 
   const pickRail = (v: string) => {
@@ -234,15 +234,44 @@ export default function App() {
       </TitleBar>
 
       <div class="body">
-        <NavigationRail
-          items={railItems()}
-          value={railValue()}
-          onChange={pickRail}
-          expanded={railOpen()}
-          onExpandedChange={toggleRail}
-          label="Devices"
-          fab={{ icon: "add", label: "Add device", onClick: () => pickRail("add") }}
-        />
+        <div class="sidebar" classList={{ "is-expanded": railOpen() }}>
+          <NavigationRail
+            items={railItems()}
+            value={railValue()}
+            onChange={pickRail}
+            expanded={railOpen()}
+            onExpandedChange={toggleRail}
+            label="Devices"
+          />
+          <div class="sidebar-bottom">
+            <Show
+              when={railOpen()}
+              fallback={
+                <FAB
+                  icon="add"
+                  label="Add device"
+                  color="tertiary-container"
+                  class={sel() === ADD_DEVICE ? "is-current" : undefined}
+                  onClick={() => pickRail("add")}
+                />
+              }
+            >
+              <ExtendedFAB
+                icon="add"
+                label="Add device"
+                color="tertiary-container"
+                class={sel() === ADD_DEVICE ? "is-current" : undefined}
+                onClick={() => pickRail("add")}
+              />
+            </Show>
+            <IconButton
+              icon="settings"
+              label="Settings"
+              variant={sel() === SETTINGS ? "tonal" : "standard"}
+              onClick={() => pickRail("settings")}
+            />
+          </div>
+        </div>
 
         <div class="scroll">
           <main>
