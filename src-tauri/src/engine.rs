@@ -14,6 +14,7 @@
 use crate::{
     config::{Config, DeviceCfg, Kind, LayerEffect, Plan},
     idle, input,
+    clock,
     input::InputEvent,
     layers::{self, Ctx, Hit, Rgba, Source, State},
     razer::{self, Razer},
@@ -216,6 +217,7 @@ impl Slot {
                 (InputEvent::OtherKey, Kind::Keyboard) => None,
                 (InputEvent::Key { .. } | InputEvent::OtherKey, _) => Some(Hit { source: Source::Key, pos: None }),
                 (InputEvent::Click, _) => Some(Hit { source: Source::Click, pos: None }),
+                (InputEvent::ClickUp, _) => Some(Hit { source: Source::Release, pos: None }),
             })
             .collect()
     }
@@ -230,7 +232,7 @@ impl Slot {
             .clamp(0.001, 10.0);
         self.last_render = Some(now);
 
-        let ctx = Ctx { t, dt, rows, cols, hits };
+        let ctx = Ctx { t, dt, rows, cols, hits, hour: clock::local_hours() };
         let mut dst = vec![[0.0f32; 3]; rows * cols];
         self.scratch.resize(rows * cols, [0.0; 4]);
         let mut animating = false;
@@ -377,7 +379,19 @@ fn fallback_color(e: &LayerEffect) -> [u8; 3] {
         | LayerEffect::Breathing { color, .. }
         | LayerEffect::Reactive { color, .. }
         | LayerEffect::Ripple { color, .. }
-        | LayerEffect::Starlight { color, .. } => *color,
+        | LayerEffect::Starlight { color, .. }
+        | LayerEffect::Rain { color, .. }
+        | LayerEffect::Candle { color, .. }
+        | LayerEffect::Comet { color, .. }
+        | LayerEffect::Shockwave { color, .. }
+        | LayerEffect::Fireworks { color, .. }
+        | LayerEffect::Frost { color, .. }
+        | LayerEffect::ClickCharge { color, .. } => *color,
+        LayerEffect::Lightning { sky, .. } => *sky,
+        LayerEffect::TimeOfDay { night, .. } => *night,
+        LayerEffect::Aurora { colors, .. } | LayerEffect::Lava { colors, .. } => {
+            colors.get(colors.len() / 2).copied().unwrap_or([255, 255, 255])
+        }
         LayerEffect::Spectrum { .. } | LayerEffect::Wave { .. } => [255, 255, 255],
     }
 }

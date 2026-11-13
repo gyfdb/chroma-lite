@@ -105,6 +105,9 @@ pub enum LayerEffect {
         cooling: f32,
         sparks: f32,
         react_to_keys: bool,
+        /// Flames stay low until you type, and grow with typing speed.
+        #[serde(default)]
+        typing_heat: bool,
     },
     Solid { color: [u8; 3] },
     Breathing { color: [u8; 3], period_secs: f32 },
@@ -113,16 +116,45 @@ pub enum LayerEffect {
     Reactive { color: [u8; 3], fade_ms: u32, trigger: Trigger },
     Ripple { color: [u8; 3], speed: f32, width: f32, trigger: Trigger },
     Starlight { color: [u8; 3], density: f32, fade_ms: u32 },
+
+    // ambient
+    /// Drifting curtains of color. `colors` is 2 to 6 stops.
+    Aurora { colors: Vec<[u8; 3]>, speed: f32 },
+    /// Drops fall down the columns and splash on the bottom row.
+    Rain { color: [u8; 3], density: f32, speed: f32 },
+    /// Soft blobs that merge and split. `colors` runs background → hottest.
+    Lava { colors: Vec<[u8; 3]>, speed: f32 },
+    /// A warm, uneven flicker.
+    Candle { color: [u8; 3], flicker: f32 },
+    /// A dim storm sky with the odd strike. `frequency` is strikes per minute.
+    Lightning { color: [u8; 3], sky: [u8; 3], frequency: f32, glow: f32 },
+    /// Follows the clock: `night` after dark, `day` in daylight, warm in between.
+    TimeOfDay { day: [u8; 3], night: [u8; 3] },
+
+    // reactive
+    /// Typing draws a fading streak from the last key to the new one.
+    Comet { color: [u8; 3], fade_ms: u32 },
+    /// A press sends a line out along its row and column.
+    Shockwave { color: [u8; 3], speed: f32, trigger: Trigger },
+    /// A spark shoots up from the press and bursts.
+    Fireworks { color: [u8; 3], rainbow: bool, trigger: Trigger },
+    /// Untouched keys slowly frost over; typing thaws them.
+    Frost { color: [u8; 3], freeze_secs: f32 },
+    /// Holding a mouse button charges the light up; letting go flashes it.
+    ClickCharge { color: [u8; 3], charge_ms: u32, fade_ms: u32 },
 }
 
 impl LayerEffect {
     /// (needs keyboard events, needs click events)
     pub fn input_needs(&self) -> (bool, bool) {
         match self {
-            LayerEffect::Fire { react_to_keys, .. } => (*react_to_keys, false),
-            LayerEffect::Reactive { trigger, .. } | LayerEffect::Ripple { trigger, .. } => {
-                (trigger.keys(), trigger.clicks())
-            }
+            LayerEffect::Fire { react_to_keys, typing_heat, .. } => (*react_to_keys || *typing_heat, false),
+            LayerEffect::Reactive { trigger, .. }
+            | LayerEffect::Ripple { trigger, .. }
+            | LayerEffect::Shockwave { trigger, .. }
+            | LayerEffect::Fireworks { trigger, .. } => (trigger.keys(), trigger.clicks()),
+            LayerEffect::Comet { .. } | LayerEffect::Frost { .. } => (true, false),
+            LayerEffect::ClickCharge { .. } => (false, true),
             _ => (false, false),
         }
     }
@@ -193,6 +225,7 @@ impl Default for Config {
             cooling: 0.22,
             sparks: 0.6,
             react_to_keys: true,
+            typing_heat: false,
         };
         Self {
             enabled: true,

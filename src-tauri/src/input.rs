@@ -18,6 +18,8 @@ pub enum InputEvent {
     /// A key with no known position (still counts for mice and whole-device hits).
     OtherKey,
     Click,
+    /// A mouse button let go (for click charge).
+    ClickUp,
 }
 
 pub const NEED_KEYS: u32 = 1;
@@ -131,8 +133,8 @@ mod win {
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         CallNextHookEx, GetMessageW, PeekMessageW, PostThreadMessageW, SetWindowsHookExW,
         UnhookWindowsHookEx, KBDLLHOOKSTRUCT, LLKHF_EXTENDED, MSG, PM_NOREMOVE, WH_KEYBOARD_LL,
-        WH_MOUSE_LL, WM_APP, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_MBUTTONDOWN, WM_RBUTTONDOWN,
-        WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN,
+        WH_MOUSE_LL, WM_APP, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
+        WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SYSKEYDOWN, WM_SYSKEYUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
     };
 
     type Sink = Box<dyn Fn(InputEvent) + Send + Sync>;
@@ -183,6 +185,8 @@ mod win {
             let msg = w as u32;
             if msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN || msg == WM_XBUTTONDOWN {
                 emit(InputEvent::Click);
+            } else if msg == WM_LBUTTONUP || msg == WM_RBUTTONUP || msg == WM_MBUTTONUP || msg == WM_XBUTTONUP {
+                emit(InputEvent::ClickUp);
             }
         }
         CallNextHookEx(null_mut(), code, w, l)
