@@ -181,19 +181,6 @@ main {
   color: var(--on-surface-variant);
 }
 
-.tb-zoom {
-  display: flex;
-  align-items: center;
-  margin-left: var(--space-2);
-}
-
-.tb-zlabel {
-  min-width: 44px;
-  height: 28px;
-  border-radius: var(--shape-full);
-  color: var(--on-surface-variant);
-}
-
 .tb-controls {
   display: flex;
   align-self: stretch;
@@ -246,6 +233,18 @@ main {
 
 .settings {
   max-width: 640px;
+}
+
+.zoom-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.zoom-value {
+  min-width: 56px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .footnote {

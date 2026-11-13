@@ -7,8 +7,9 @@ import Inspector from "./components/Inspector";
 import LayerStack from "./components/LayerStack";
 import Preview from "./components/Preview";
 import TitleBar from "./components/TitleBar";
-import { SliderField } from "./components/ui";
-import { Button, Card, Icon, List, ListItem, NavigationRail, SegmentedButton, Snackbar, Switch } from "./aalto";
+import { Field, SliderField } from "./components/ui";
+import { Button, Card, Icon, IconButton, List, ListItem, NavigationRail, SegmentedButton, Snackbar, Switch } from "./aalto";
+import { zoom, zoomIn, zoomOut, zoomReset } from "./zoom";
 import { setTheme, theme, ThemePref } from "./theme";
 
 const KEYBOARD_HINTS = /keyboard|blackwidow|huntsman|ornata|cynosa|deathstalker/i;
@@ -410,16 +411,28 @@ export default function App() {
                     <h2 class="title-medium">Appearance</h2>
                   </header>
                   <div class="section-body">
-                    <SegmentedButton
-                      label="Theme"
-                      value={theme()}
-                      onChange={(v: ThemePref) => setTheme(v)}
-                      options={[
-                        { value: "system", label: "System", icon: "brightness_auto" },
-                        { value: "light", label: "Light", icon: "light_mode" },
-                        { value: "dark", label: "Dark", icon: "dark_mode" },
-                      ]}
-                    />
+                    <Field label="Theme">
+                      <SegmentedButton
+                        label="Theme"
+                        value={theme()}
+                        onChange={(v: ThemePref) => setTheme(v)}
+                        options={[
+                          { value: "system", label: "System", icon: "brightness_auto" },
+                          { value: "light", label: "Light", icon: "light_mode" },
+                          { value: "dark", label: "Dark", icon: "dark_mode" },
+                        ]}
+                      />
+                    </Field>
+                    <Field label="Zoom" hint="Ctrl + and Ctrl −, Ctrl 0 to reset, or Ctrl + scroll">
+                      <div class="zoom-row">
+                        <IconButton icon="remove" label="Zoom out" variant="outlined" onClick={zoomOut} disabled={zoom() <= 0.5} />
+                        <span class="title-medium zoom-value">{Math.round(zoom() * 100)}%</span>
+                        <IconButton icon="add" label="Zoom in" variant="outlined" onClick={zoomIn} disabled={zoom() >= 2} />
+                        <Button variant="text" onClick={zoomReset} disabled={zoom() === 1}>
+                          Reset
+                        </Button>
+                      </div>
+                    </Field>
                   </div>
                 </Card>
                 <p class="body-small muted footnote">Closing this window keeps Chroma Lite running in the tray.</p>

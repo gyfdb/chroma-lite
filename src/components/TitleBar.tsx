@@ -1,7 +1,6 @@
 import { createSignal, JSX, onCleanup, onMount } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Icon, IconButton } from "../aalto";
-import { zoom, zoomIn, zoomOut, zoomReset } from "../zoom";
+import { Icon } from "../aalto";
 
 /**
  * Custom window chrome. Anything with data-tauri-drag-region drags the window
@@ -41,14 +40,6 @@ export default function TitleBar(props: { children?: JSX.Element }) {
       <div class="tb-spacer" data-tauri-drag-region />
 
       <div class="tb-extras">{props.children}</div>
-
-      <div class="tb-zoom" title="Zoom (Ctrl + / Ctrl − / Ctrl 0, or Ctrl + wheel)">
-        <IconButton icon="remove" label="Zoom out" size="xs" onClick={zoomOut} />
-        <button type="button" class="tb-zlabel label-medium aa-sl" onClick={zoomReset} aria-label="Reset zoom">
-          {Math.round(zoom() * 100)}%
-        </button>
-        <IconButton icon="add" label="Zoom in" size="xs" onClick={zoomIn} />
-      </div>
 
       <div class="tb-controls">
         <button type="button" class="tb-btn aa-sl" aria-label="Minimize" onClick={() => win?.minimize()}>
