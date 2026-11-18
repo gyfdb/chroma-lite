@@ -377,9 +377,9 @@ const KEYBOARD_JS = String.raw`
 
   const W = cv.width / COLS, H = cv.height / ROWS, PAD = 5;
   const off = [62, 51, 43];
-  // 24 fps, the app's default frame rate. Stepping on every browser frame
+  // 15 fps: slow enough to look like the real flames. Stepping on every browser frame
   // made the fire run several times too fast on high refresh rate screens.
-  const FPS = slow ? 6 : 24;
+  const FPS = slow ? 6 : 15;
   function frame(now) {
     requestAnimationFrame(frame);
     const elapsed = now - last, step = 1000 / FPS;
