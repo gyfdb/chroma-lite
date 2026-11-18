@@ -2,14 +2,31 @@
 // The Release workflow uploads each new version here; the page and /latest
 // always point at the newest one.
 {
-  "name": "chroma-lite-downloads",
-  "main": "src/index.js",
-  "compatibility_date": "2026-11-01",
-  "routes": [{ "pattern": "chroma.typicalpuppyboy.com", "custom_domain": true }],
-  "r2_buckets": [{ "binding": "RELEASES", "bucket_name": "chroma-lite-releases" }],
-  // the app screenshot and favicon
-  "assets": { "directory": "./public" }
-  // Secret (wrangler secret put UPLOAD_TOKEN_SHA256): the SHA-256, in hex,
-  // of the token the Release workflow sends to upload and publish (the
-  // CHROMA_UPLOAD_TOKEN repository secret).
+	"name": "chroma-lite-downloads",
+	"main": "src/index.js",
+	"compatibility_date": "2026-11-01",
+	"routes": [
+		{
+			"pattern": "chroma.typicalpuppyboy.com",
+			"custom_domain": true
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "RELEASES",
+			"bucket_name": "chroma-lite-releases"
+		},
+		{
+			"bucket_name": "chroma-lite-releases",
+			"binding": "chroma_lite_releases",
+			"remote": true
+		}
+	],
+	// the app screenshot and favicon
+	"assets": {
+		"directory": "./public"
+	}
+	// Secret (wrangler secret put UPLOAD_TOKEN_SHA256): the SHA-256, in hex,
+	// of the token the Release workflow sends to upload and publish (the
+	// CHROMA_UPLOAD_TOKEN repository secret).
 }
