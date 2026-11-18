@@ -4,7 +4,9 @@
 
 I wanted my Razer keyboard and mouse to look good without Synapse running in the background all the time, so I made my own. Chroma Lite talks to the devices directly over USB HID and sits in the system tray. It does the one job I actually need: light the gear up while I'm using the PC, and turn it off when I'm not.
 
-Built with Tauri 2, Rust, Solid, TypeScript and Vite. Windows for now.
+Built with Tauri 2, Rust, Solid, TypeScript and Vite. Runs on Windows, macOS and Linux, though idle-off and the reactive effects are Windows-only for now.
+
+**Download it from [chroma.typicalpuppyboy.com](https://chroma.typicalpuppyboy.com)**, or from [Releases](https://github.com/gyfdb/chroma-lite/releases).
 
 > Not affiliated with or endorsed by Razer. It uses the same USB lighting commands that OpenRazer and OpenRGB do.
 
@@ -64,21 +66,67 @@ The project uses Bun (`tauri.conf.json` runs `bun run dev` / `bun run build`). F
 
 ### Releases
 
-Pushing a tag like `v0.1.0` (matching `version` in `tauri.conf.json`) runs `.github/workflows/release.yml`, which builds for Windows, macOS (Apple Silicon and Intel) and Linux and puts everything in a draft GitHub release. Look it over, then publish it. You can also start it by hand from the Actions tab.
+The version lives in one place: `version` in `src-tauri/Cargo.toml`. Tauri reads it from there (there's no version in `tauri.conf.json` or `package.json`), and so do the installer, the release file names and the download site. Settings shows it at the bottom.
+
+To release, bump it, commit, and push a matching tag:
 
 ```
-git tag v0.1.0
-git push origin v0.1.0
+# src-tauri/Cargo.toml: version = "0.3.0"
+git commit -am "chore: release 0.3.0"
+git tag v0.3.0
+git push origin main v0.3.0
 ```
 
-The builds aren't code-signed, so Windows SmartScreen and macOS Gatekeeper will warn on first launch. Idle-off and the reactive effects are Windows-only for now; on macOS and Linux the lights stay on and reactive layers don't react.
+That runs `.github/workflows/release.yml`. It stops straight away if the tag doesn't match the version, otherwise it builds:
 
-On Linux the `.deb` and `.rpm` install a udev rule so the app can reach the Razer devices without root. For the AppImage, add it yourself:
+| Platform | File | What it is |
+|---|---|---|
+| Windows | `ChromaLite-Setup-<version>.exe` | The installer, with the app inside. Per-user, no admin, and it removes an older NSIS install first |
+| Windows | `ChromaLite-<version>-portable.zip` | Just `chroma-lite.exe` |
+| macOS | `ChromaLite-Setup-<version>-macOS.dmg` | Chroma Lite Setup, a universal app (Apple silicon and Intel) |
+| Linux | `ChromaLite-Setup-<version>-linux-x86_64.tar.gz` | `chroma-lite-setup` for x86-64 |
+
+Then it puts them on a GitHub release and publishes them to the download site. You can also run it by hand from the Actions tab: it builds the files as an artifact and only publishes to the site if you tick the box.
+
+The builds aren't code-signed, so Windows SmartScreen and macOS Gatekeeper warn about Setup the first time. On macOS only Setup needs the right-click > Open: the app it installs comes out of Setup itself, so it doesn't get the quarantine flag.
+
+### The installer
+
+`installer/` is a small Rust (egui) app, the same idea as Aalto Shimeji's. Setup carries the app zipped inside it (the release workflow passes it in as `CHROMA_PAYLOAD`), and the same program updates and uninstalls:
+
+- **Windows:** `%LOCALAPPDATA%\Programs\Chroma Lite`, with an Apps & features entry, Start menu and desktop shortcuts, and "start at login" (`--tray`, so it starts hidden). It checks for WebView2 and links to it if it's missing.
+- **macOS:** `/Applications` (or `~/Applications`), with a LaunchAgent for "start at login".
+- **Linux:** `~/.local/share/chroma-lite`, an app menu entry, an autostart entry, `~/.local/bin/chroma-lite`, and the udev rule in `/etc/udev/rules.d` so it can reach the devices without root. That last part is the only thing that asks for a password (through pkexec).
+
+Uninstalling keeps your layers and settings unless you tick "Also forget my layers and settings".
+
+```
+cd installer
+cargo run                                   # the UI, with no app inside
+CHROMA_PAYLOAD=payload.zip cargo build --release
+cargo clippy --features win-check           # type-check the Windows code from Linux
+cargo clippy --features mac-check           # and the macOS code
+```
+
+If you'd rather add the Linux udev rule yourself (say, running the portable binary):
 
 ```
 sudo cp src-tauri/linux/70-chroma-lite.rules /etc/udev/rules.d/
 sudo udevadm control --reload && sudo udevadm trigger
 ```
+
+### The download site
+
+`site/` is a Cloudflare Worker at `chroma.typicalpuppyboy.com`. It serves the page (with a live keyboard you can type on), and keeps the release files in the `chroma-lite-releases` R2 bucket. The release workflow uploads to it with a token. The Worker only keeps the token's SHA-256, and the token itself is the `CHROMA_UPLOAD_TOKEN` repository secret. To set it up once:
+
+```
+cd site
+npx wrangler r2 bucket create chroma-lite-releases
+npx wrangler secret put UPLOAD_TOKEN_SHA256     # paste the SHA-256 (hex) of the token
+npx wrangler deploy
+```
+
+Without the secret, the workflow still makes the GitHub release and just skips the site.
 
 ### Release build
 
@@ -149,6 +197,13 @@ src/
     Inspector.tsx          settings for the selected layer
     Preview.tsx            live preview (frames come from the engine)
     DeviceSettings.tsx     brightness, hardware preference, advanced
+installer/src/
+  main.rs                  Setup's window: install, update, uninstall
+  keyboard.rs              the fire on the keyboard and mouse in Setup
+  ops/                     what it does, per OS (windows.rs, macos.rs, linux.rs)
+site/
+  src/index.js             the download site and its API
+  public/                  the screenshot and icon
 src-tauri/src/
   razer.rs                 Razer HID protocol (90-byte feature reports)
   layers.rs                effect renderers + blend modes
@@ -156,6 +211,7 @@ src-tauri/src/
   input.rs                 on-demand Win32 hooks + key → LED map
   config.rs                settings model (layers, plans)
   idle.rs                  GetLastInputInfo
+  clock.rs                 local time of day
   lib.rs                   Tauri commands, tray, window lifecycle
 ```
 

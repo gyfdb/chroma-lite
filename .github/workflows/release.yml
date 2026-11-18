@@ -1,7 +1,15 @@
 # ─ Release ────────────────────────────────────────────────────────────────────
-# builds Chroma Lite for every platform and uploads it to a draft GitHub release.
-# push a tag like v0.1.0 (matching "version" in tauri.conf.json), or run it by
-# hand from the Actions tab. the release stays a draft until you publish it.
+# Push a tag like v0.3.0 and this builds Chroma Lite for Windows, macOS (one
+# universal app for Apple silicon and Intel) and Linux, wraps each in its
+# installer (installer/), puts them on a GitHub release, and publishes them on
+# https://chroma.typicalpuppyboy.com (the worker in site/).
+#
+# The version comes from src-tauri/Cargo.toml and nowhere else. The tag has to
+# match it, so bump the version, commit, then tag.
+#
+# Run it by hand (Actions > Release > Run workflow) to build the files as a
+# downloadable artifact, and optionally publish them to the site, without a
+# release.
 
 name: Release
 
@@ -9,80 +17,262 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to chroma.typicalpuppyboy.com"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
-  build:
-    name: ${{ matrix.name }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows (x64)
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bundles: nsis
-          - name: macOS (Apple Silicon)
-            os: macos-latest
-            target: aarch64-apple-darwin
-            bundles: app,dmg
-          - name: macOS (Intel)
-            os: macos-latest
-            target: x86_64-apple-darwin
-            bundles: app,dmg
-          - name: Linux (x64)
-            os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            bundles: deb,rpm,appimage
-    runs-on: ${{ matrix.os }}
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the version from Cargo.toml
+        id: v
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 --manifest-path src-tauri/Cargo.toml \
+            | python3 -c 'import json,sys; print([p for p in json.load(sys.stdin)["packages"] if p["name"]=="chroma-lite"][0]["version"])')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Chroma Lite $version"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::The tag is $GITHUB_REF_NAME but src-tauri/Cargo.toml says $version. Bump the version, commit, and tag v$version."
+            exit 1
+          fi
 
+  windows:
+    needs: version
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src-tauri -> target
+            installer -> target
+      - run: bun install --frozen-lockfile
+
+      - name: Build the app
+        run: bun tauri build --no-bundle
+
+      # bsdtar writes a standard zip (forward-slash paths)
+      - name: Package the app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          tar -a -cf dist/payload.zip -C src-tauri/target/release chroma-lite.exe
+
+      - name: Build the installer
+        env:
+          CHROMA_PAYLOAD: ${{ github.workspace }}\dist\payload.zip
+        run: cargo build --release --manifest-path installer/Cargo.toml
+
+      - name: Collect the files
+        shell: pwsh
+        run: |
+          Copy-Item installer/target/release/chroma-lite-setup.exe "dist/ChromaLite-Setup-$env:VERSION.exe"
+          Copy-Item dist/payload.zip "dist/ChromaLite-$env:VERSION-portable.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/ChromaLite-Setup-*.exe
+            dist/ChromaLite-*-portable.zip
+
+  macos:
+    needs: version
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src-tauri -> target
+            installer -> target
+      - run: bun install --frozen-lockfile
+
+      # One universal app for Apple silicon and Intel. Signed ad hoc (Apple
+      # silicon won't run unsigned code); not notarized.
+      - name: Build the app
+        run: |
+          bun tauri build --target universal-apple-darwin --bundles app
+          codesign --force --deep --sign - "src-tauri/target/universal-apple-darwin/release/bundle/macos/Chroma Lite.app"
+
+      # -y keeps symlinks, and zip keeps the permissions the installer restores
+      - name: Package the app
+        run: |
+          mkdir -p dist
+          (cd src-tauri/target/universal-apple-darwin/release/bundle/macos && zip -qry "$GITHUB_WORKSPACE/dist/payload.zip" "Chroma Lite.app")
+
+      - name: Build the installer for Apple silicon and Intel
+        env:
+          CHROMA_PAYLOAD: ${{ github.workspace }}/dist/payload.zip
+        run: |
+          for t in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --release --manifest-path installer/Cargo.toml --target $t
+          done
+
+      - name: Make the setup app and disk image
+        run: |
+          APP="dist/dmg/Chroma Lite Setup.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          lipo -create -output "$APP/Contents/MacOS/chroma-lite-setup" \
+            installer/target/aarch64-apple-darwin/release/chroma-lite-setup installer/target/x86_64-apple-darwin/release/chroma-lite-setup
+          cp src-tauri/icons/icon.icns "$APP/Contents/Resources/AppIcon.icns"
+          cat > "$APP/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key><string>Chroma Lite Setup</string>
+            <key>CFBundleDisplayName</key><string>Chroma Lite Setup</string>
+            <key>CFBundleIdentifier</key><string>com.barkafterbark.chromalite.setup</string>
+            <key>CFBundleExecutable</key><string>chroma-lite-setup</string>
+            <key>CFBundleIconFile</key><string>AppIcon</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>$VERSION</string>
+            <key>CFBundleVersion</key><string>$VERSION</string>
+            <key>LSMinimumSystemVersion</key><string>11.0</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          codesign --force --deep --sign - "$APP"
+          hdiutil create -volname "Chroma Lite" -srcfolder dist/dmg -ov -format UDZO "dist/ChromaLite-Setup-$VERSION-macOS.dmg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/ChromaLite-Setup-*-macOS.dmg
+
+  linux:
+    needs: version
+    # the oldest supported Ubuntu, so the binaries run on older glibc too
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
-      # webkit + tray libs for tauri, libudev for hidapi
+      # webkit + tray libs for tauri, libudev for hidapi, xkbcommon/wayland for the installer
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libudev-dev \
+            libxkbcommon-dev libwayland-dev
 
       - uses: oven-sh/setup-bun@v2
-
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
-          key: ${{ matrix.target }}
+          workspaces: |
+            src-tauri -> target
+            installer -> target
+      - run: bun install --frozen-lockfile
 
-      - name: Install frontend dependencies
-        run: bun install --frozen-lockfile
+      - name: Build the app
+        run: bun tauri build --no-bundle
 
-      # tauri.conf.json only lists nsis (for local builds), so each platform
-      # passes its own bundle types here
-      - uses: tauri-apps/tauri-action@v0
+      - name: Package the app
+        run: |
+          mkdir -p dist
+          (cd src-tauri/target/release && zip -q -X "$GITHUB_WORKSPACE/dist/payload.zip" chroma-lite)
+
+      - name: Build the installer
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHROMA_PAYLOAD: ${{ github.workspace }}/dist/payload.zip
+        run: cargo build --release --manifest-path installer/Cargo.toml
+
+      - name: Make the tarball
+        run: |
+          D="dist/chroma-lite-setup-$VERSION"
+          mkdir -p "$D"
+          cp installer/target/release/chroma-lite-setup "$D/"
+          cat > "$D/README.txt" <<README
+          Chroma Lite $VERSION for Linux (x86-64).
+
+          Run ./chroma-lite-setup to install it. It goes in your home folder
+          (~/.local/share/chroma-lite), adds itself to the app menu, and asks
+          for your password once to install a udev rule so it can reach your
+          Razer devices. Run it again to update or uninstall.
+
+          Chroma Lite needs WebKitGTK 4.1. On Debian or Ubuntu:
+            sudo apt install libwebkit2gtk-4.1-0 libayatana-appindicator3-1
+          README
+          tar -C dist -czf "dist/ChromaLite-Setup-$VERSION-linux-x86_64.tar.gz" "chroma-lite-setup-$VERSION"
+
+      - uses: actions/upload-artifact@v4
         with:
-          tauriScript: bun tauri
-          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
-          releaseName: Chroma Lite ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
-          releaseBody: |
-            Builds for Windows, macOS (Apple Silicon + Intel) and Linux.
+          name: linux
+          path: dist/ChromaLite-Setup-*-linux-x86_64.tar.gz
 
-            - **Windows:** `*-setup.exe` (per-user install, no admin needed)
-            - **macOS:** `.dmg`. Not signed, so the first launch needs right-click → Open.
-            - **Linux:** `.deb` / `.rpm` (installs a udev rule so it works without root), or `.AppImage` (add the rule yourself, see the README).
+  publish:
+    needs: [version, windows, macos, linux]
+    runs-on: ubuntu-latest
+    env:
+      SITE: https://chroma.typicalpuppyboy.com
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
-            Idle-off and the reactive effects (key/click hooks) are Windows-only for now. On macOS and Linux the lights stay on and reactive layers don't react.
-          releaseDraft: true
-          prerelease: false
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Chroma Lite ${{ env.VERSION }}
+          files: dist/*
+          generate_release_notes: true
+          body: |
+            Download from **https://chroma.typicalpuppyboy.com**, or below.
+
+            - **Windows:** `ChromaLite-Setup-${{ env.VERSION }}.exe` installs per-user, no admin needed. The portable zip is just the app.
+            - **macOS:** open the `.dmg` and run Chroma Lite Setup (right-click > Open the first time; it isn't notarized).
+            - **Linux:** unpack the tarball and run `chroma-lite-setup`.
+
+            Idle-off and the reactive effects are Windows-only for now.
+
+      # Needs the CHROMA_UPLOAD_TOKEN repository secret (the worker only keeps
+      # its SHA-256). Without it, this step is skipped with a warning.
+      - name: Publish to chroma.typicalpuppyboy.com
+        if: startsWith(github.ref, 'refs/tags/') || inputs.publish
+        env:
+          TOKEN: ${{ secrets.CHROMA_UPLOAD_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::CHROMA_UPLOAD_TOKEN isn't set, so the site wasn't updated."
+            exit 0
+          fi
+          windows="ChromaLite-Setup-$VERSION.exe"
+          portable="ChromaLite-$VERSION-portable.zip"
+          mac="ChromaLite-Setup-$VERSION-macOS.dmg"
+          linux="ChromaLite-Setup-$VERSION-linux-x86_64.tar.gz"
+          for f in "$windows" "$portable" "$mac" "$linux"; do
+            curl --fail-with-body -sS -X PUT -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/octet-stream" --data-binary "@dist/$f" "$SITE/upload/$f"
+            echo
+          done
+          body=$(printf '{"version":"%s","windows":"%s","portable":"%s","mac":"%s","linux":"%s"}' \
+            "$VERSION" "$windows" "$portable" "$mac" "$linux")
+          curl --fail-with-body -sS -X POST -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" --data "$body" "$SITE/publish"
+          echo
+          echo "Published $VERSION to $SITE"
