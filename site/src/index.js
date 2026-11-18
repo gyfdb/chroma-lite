@@ -377,8 +377,16 @@ const KEYBOARD_JS = String.raw`
 
   const W = cv.width / COLS, H = cv.height / ROWS, PAD = 5;
   const off = [62, 51, 43];
+  // 24 fps, the app's default frame rate. Stepping on every browser frame
+  // made the fire run several times too fast on high refresh rate screens.
+  const FPS = slow ? 6 : 24;
   function frame(now) {
-    const dt = Math.min(0.1, (now - last) / 1000); last = now; t += dt; idle += dt;
+    requestAnimationFrame(frame);
+    const elapsed = now - last, step = 1000 / FPS;
+    if (elapsed < step) return;
+    // keep the leftover, so it averages out to FPS whatever the refresh rate
+    last = now - (elapsed % step);
+    const dt = Math.min(0.25, elapsed / 1000); t += dt; idle += dt;
     for (const x of rings) x.age += dt; rings = rings.filter(x => x.age * 14 < 26);
     g.clearRect(0, 0, cv.width, cv.height);
     EFFECTS[effect]((r, c, rgb, a) => {
@@ -391,7 +399,6 @@ const KEYBOARD_JS = String.raw`
       g.beginPath(); g.roundRect(c * W + PAD, r * H + PAD, W - PAD * 2, H - PAD * 2, 8); g.fill();
     }, dt);
     g.shadowBlur = 0;
-    if (slow) setTimeout(() => requestAnimationFrame(frame), 160); else requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 })();
