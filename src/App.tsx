@@ -11,6 +11,7 @@ import { Field, SliderField } from "./components/ui";
 import { Button, Card, ExtendedFAB, FAB, Icon, IconButton, List, ListItem, NavigationRail, SegmentedButton, Snackbar, Switch } from "./aalto";
 import { zoom, zoomIn, zoomOut, zoomReset } from "./zoom";
 import { setTheme, theme, ThemePref } from "./theme";
+import { getVersion } from "@tauri-apps/api/app";
 
 const KEYBOARD_HINTS = /keyboard|blackwidow|huntsman|ornata|cynosa|deathstalker/i;
 
@@ -49,6 +50,9 @@ export default function App() {
   const [save, setSave] = createSignal<"saved" | "saving" | "error">("saved");
   const [sel, setSel] = createSignal(0);
   const [layerSel, setLayerSel] = createSignal<string | null>(null);
+  // from Cargo.toml, via Tauri
+  const [version, setVersion] = createSignal("");
+  getVersion().then(setVersion, () => {});
   const [railOpen, setRailOpen] = createSignal(
     (() => {
       try {
@@ -464,7 +468,9 @@ export default function App() {
                     </Field>
                   </div>
                 </Card>
-                <p class="body-small muted footnote">Closing this window keeps Chroma Lite running in the tray.</p>
+                <p class="body-small muted footnote">
+                  Chroma Lite{version() ? ` ${version()}` : ""}. Closing this window keeps it running in the tray.
+                </p>
               </div>
             </Show>
           </main>

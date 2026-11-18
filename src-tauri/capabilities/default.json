@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Settings window. App commands are always allowed; on top of that, only what the custom title bar and zoom need. removeUnusedCommands strips every other core API out of the binary.",
+  "description": "Settings window. App commands are always allowed; on top of that, only what the custom title bar, zoom and the version in Settings need. removeUnusedCommands strips every other core API out of the binary.",
   "windows": [
     "main"
   ],
@@ -14,6 +14,7 @@
     "core:window:allow-is-maximized",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
-    "core:webview:allow-set-webview-zoom"
+    "core:webview:allow-set-webview-zoom",
+    "core:app:allow-version"
   ]
 }
