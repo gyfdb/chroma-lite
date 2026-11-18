@@ -2,7 +2,7 @@
 name = "chroma-lite"
 # the one place the version lives: the app, the installer, the release
 # files and the download site all read it from here
-version = "0.2.0"
+version = "0.3.0"
 description = "Synapse-free lighting for Razer peripherals"
 edition = "2021"
 license = "MIT"
